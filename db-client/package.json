@@ -1,0 +1,5 @@
+{
+    "name": "@luz/db-client",
+    "type": "commonjs",
+    "main": "./gen/index.js"
+}

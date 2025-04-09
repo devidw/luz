@@ -1,0 +1,21 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../db-client/gen"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../data/db.sqlite"
+}
+
+enum Msg_Role {
+  User
+  Being
+}
+
+model Msg {
+  id         Int      @id @default(autoincrement())
+  created_at DateTime @default(now())
+  content    String
+  role       Msg_Role
+}

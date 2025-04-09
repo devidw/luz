@@ -1,0 +1,12 @@
+{
+  "name": "database",
+  "type": "module",
+  "scripts": {},
+  "devDependencies": {
+    "@luz/db-client": "workspace:../db-client",
+    "@prisma/client": "6.5.0",
+    "prisma": "^6.5.0",
+    "tsx": "^4.19.3",
+    "typescript": "^5.0.0"
+  }
+}

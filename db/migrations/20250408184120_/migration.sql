@@ -1,0 +1,7 @@
+-- CreateTable
+CREATE TABLE "Msg" (
+    "id" BIGINT NOT NULL PRIMARY KEY,
+    "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "content" TEXT NOT NULL,
+    "role" TEXT NOT NULL
+);

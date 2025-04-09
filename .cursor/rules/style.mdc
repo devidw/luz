@@ -1,0 +1,8 @@
+---
+description: 
+globs: *.ts,*.svelte
+alwaysApply: false
+---
+- use snake case
+- don't comment your code
+- add proper spacing w/ newlines to keep things clean and organized when it makes sense in context

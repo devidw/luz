@@ -1,0 +1,7 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- this is a pnpm monorepo
+- backend nickname : alive

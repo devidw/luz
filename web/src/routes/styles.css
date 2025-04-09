@@ -1,0 +1,10 @@
+body {
+	background: black;
+	color: white;
+	font-family: "Noto Serif Variable";
+	text-rendering: optimizeLegibility;
+	font-smooth: always;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	hyphens: auto;
+}
