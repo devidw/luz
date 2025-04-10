@@ -14,7 +14,7 @@ enum Msg_Role {
 }
 
 model Msg {
-  id         Int      @id @default(autoincrement())
+  id         String   @id @default(uuid())
   created_at DateTime @default(now())
   content    String
   role       Msg_Role

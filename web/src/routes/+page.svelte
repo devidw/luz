@@ -10,21 +10,13 @@
 	import Message from "./Message.svelte"
 	import Fullscreen from "./Fullscreen.svelte"
 
-	let messages: Msg[] = [
-		{
-			role: "User" as const,
-			content: "Hey there! Can you help me with something?"
-		} as Msg,
-		{
-			role: "Being" as const,
-			content:
-				"Of course! I'm here to help. What would you like to know? I can assist you with various topics and questions you might have."
-		} as Msg
-	]
+	let messages: (Msg & { chunks: string[] })[] = []
 	let input = ""
 	let socket: Socket<ServerToClientEvents, ClientToServerEvents>
-	let current_streaming_msg: Pick<Msg, "role" | "content"> | null = null
+	let current_streaming_msg: (Msg & { chunks: string[] }) | null = null
 	let is_typing = false
+	let messages_container: HTMLDivElement | null = null
+	let last_user_message: HTMLDivElement | null = null
 
 	onMount(() => {
 		socket = io(`ws://${window.location.hostname}:6900`)
@@ -33,11 +25,15 @@
 			if (!current_streaming_msg) {
 				current_streaming_msg = {
 					role: chunk.role,
-					content: chunk.content
+					content: chunk.content,
+					chunks: [chunk.content],
+					id: "",
+					created_at: new Date()
 				}
-				messages = [...messages, current_streaming_msg as Msg]
+				messages = [...messages, current_streaming_msg]
 			} else {
 				current_streaming_msg.content += chunk.content
+				current_streaming_msg.chunks = [...current_streaming_msg.chunks, chunk.content]
 				messages = messages
 			}
 		})
@@ -53,26 +49,48 @@
 
 	function send_message() {
 		if (!input.trim()) return
-
-		messages = [...messages, { role: "User" as const, content: input } as Msg]
+		const new_msg: Msg & { chunks: string[] } = {
+			role: "User" as const,
+			content: input,
+			chunks: [input],
+			id: "",
+			created_at: new Date()
+		}
+		messages = [...messages, new_msg]
 		current_streaming_msg = null
-
 		socket.emit("msg", { content: input })
 		input = ""
+
+		// Scroll to bottom with offset after sending message
+		if (messages_container) {
+			const offset = 160
+			messages_container.scrollTo({
+				top: messages_container.scrollHeight - messages_container.clientHeight - offset,
+				behavior: "smooth"
+			})
+		}
 	}
 </script>
 
 <div class="h-screen flex flex-col">
 	<Fullscreen />
 
-	<div class="flex-1 overflow-y-auto space-y-3 mt3 max-w-3xl mx-auto max-w-xl w-full">
+	<div
+		bind:this={messages_container}
+		class="flex-1 overflow-y-auto space-y-3 mt3 max-w-3xl mx-auto max-w-xl w-full"
+	>
 		{#each messages as msg}
-			<Message {msg} />
+			<Message {msg} root={msg.role === "User" ? last_user_message : undefined} />
 		{/each}
 
 		{#if is_typing}
-			<Message msg={{ role: "Being", content: "" }} />
+			<Message
+				msg={{ role: "Being", content: "", chunks: [], id: "", created_at: new Date() }}
+				root={undefined}
+			/>
 		{/if}
+
+		<div class="h-screen"></div>
 	</div>
 
 	<div class="max-w-xl w-full mx-auto">
@@ -88,7 +106,7 @@
 					}
 				}}
 				placeholder="Type a message..."
-				class="flex-1 py-4 px-4 border-t border-x border-zinc-800 resize-none bg-transparent leading-180%"
+				class="flex-1 py-4 px-4 border-t border-x border-zinc-800 resize-none bg-transparent leading-175%"
 				style="outline: none;"
 			/>
 		</form>

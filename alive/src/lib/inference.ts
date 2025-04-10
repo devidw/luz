@@ -1,12 +1,14 @@
-import { LMStudioClient } from "@lmstudio/sdk"
 import { Msg, Msg_Role } from "@luz/db-client"
 import fs from "node:fs"
+import { lm } from "./lm.js"
 
 const sys_prompt = fs.readFileSync("../data/prompt.md").toString()
 
-const client = new LMStudioClient()
+export const MODEL_NAME = "mistral-small-3.1-24b-instruct-2503"
 
-const model = await client.llm.model("mistral-small-3.1-24b-instruct-2503")
+export const llm = await lm.llm.model(MODEL_NAME, {
+    verbose: false,
+})
 
 export async function* infer({
     messages,
@@ -37,7 +39,7 @@ export async function* infer({
         })),
     ]
 
-    const generator = model.respond(
+    const generator = llm.respond(
         {
             messages: chat_messages,
         },
