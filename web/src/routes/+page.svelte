@@ -44,7 +44,6 @@
 					]
 					messages = messages
 				}
-				is_typing = false
 			}
 		})
 
@@ -96,6 +95,14 @@
 		{#each messages as msg}
 			<Message {msg} root={msg.role === "User" ? last_user_message : undefined} />
 		{/each}
+
+		{#if is_typing}
+			<span class="inline-flex gap-1">
+				<span class="animate-bounce">•</span>
+				<span class="animate-bounce" style="animation-delay: 0.2s">•</span>
+				<span class="animate-bounce" style="animation-delay: 0.4s">•</span>
+			</span>
+		{/if}
 
 		{#if thinking_message.length > 0}
 			<Message

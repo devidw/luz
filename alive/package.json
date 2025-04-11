@@ -12,10 +12,16 @@
     "@trpc/server": "^11.0.2",
     "chromadb": "^2.2.0",
     "date-fns": "^4.1.0",
+    "dav": "^1.8.0",
+    "dotenv": "^16.5.0",
+    "node-ical": "^0.20.1",
+    "rss-parser": "^3.13.0",
     "socket.io": "^4.8.1",
+    "webdav": "^4.11.4",
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/dav": "^1.7.7",
     "@types/node": "^22.14.0",
     "tsx": "^4.19.3",
     "typescript": "^5.0.0"

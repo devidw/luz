@@ -1,7 +1,7 @@
 import { Msg, Msg_Role } from "@luz/db-client"
 import fs from "node:fs"
 import { lm } from "./lm.js"
-import { format } from "date-fns"
+import { compile_prompt } from "./prompts.js"
 
 // export const MODEL_NAME = "deepseek-r1-distill-llama-8b"
 export const MODEL_NAME = "mistral-small-3.1-24b-instruct-2503"
@@ -10,21 +10,12 @@ export const llm = await lm.llm.model(MODEL_NAME, {
     verbose: false,
 })
 
-const raw_prompt = fs.readFileSync("../data/prompt.md").toString()
-
-function compile_prompt() {
-    return raw_prompt.replaceAll(
-        "{{date}}",
-        format(new Date(), "EEEE, d. MMMM yy hh:mm a"),
-    )
-}
-
 export async function* infer({
     messages,
 }: {
     messages: Pick<Msg, "role" | "content">[]
 }) {
-    const sys_msg = compile_prompt()
+    const sys_msg = await compile_prompt()
 
     const chat_messages = [
         {
@@ -49,6 +40,8 @@ export async function* infer({
             ],
         })),
     ]
+
+    fs.writeFileSync("../data/sys_msg.md", sys_msg)
 
     fs.writeFileSync(
         "../data/chat.debug.json",

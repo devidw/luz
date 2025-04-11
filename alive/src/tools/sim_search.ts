@@ -1,6 +1,6 @@
-import { vec_msg } from "./vec.js"
-import { emb } from "./emb.js"
-import { db } from "./db.js"
+import { vec_msg } from "../lib/vec.js"
+import { emb } from "../lib/emb.js"
+import { db } from "../lib/db.js"
 import { Msg } from "@luz/db-client"
 
 export async function sim_search(query: string) {

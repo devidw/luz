@@ -16,13 +16,7 @@
 			{#each msg.chunks as chunk}
 				<span class="animate-fade-in whitespace-pre-wrap">{chunk.content}</span>
 			{/each}
-		{:else}
-			<span class="inline-flex gap-1">
-				<span class="animate-bounce">•</span>
-				<span class="animate-bounce" style="animation-delay: 0.2s">•</span>
-				<span class="animate-bounce" style="animation-delay: 0.4s">•</span>
-			</span>
-		{/if}
+		{:else}{/if}
 	</div>
 </div>
 
