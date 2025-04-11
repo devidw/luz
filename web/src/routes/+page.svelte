@@ -10,10 +10,11 @@
 	import Message from "./Message.svelte"
 	import Fullscreen from "./Fullscreen.svelte"
 
-	let messages: (Msg & { chunks: string[] })[] = []
+	let messages: (Msg & { chunks: { content: string }[] })[] = []
+	let thinking_message = ""
 	let input = ""
 	let socket: Socket<ServerToClientEvents, ClientToServerEvents>
-	let current_streaming_msg: (Msg & { chunks: string[] }) | null = null
+	let current_streaming_msg: (Msg & { chunks: { content: string }[] }) | null = null
 	let is_typing = false
 	let messages_container: HTMLDivElement | null = null
 	let last_user_message: HTMLDivElement | null = null
@@ -21,20 +22,29 @@
 	onMount(() => {
 		socket = io(`ws://${window.location.hostname}:6900`)
 
-		socket.on("msg_chunk", (chunk: Pick<Msg, "role" | "content">) => {
-			if (!current_streaming_msg) {
-				current_streaming_msg = {
-					role: chunk.role,
-					content: chunk.content,
-					chunks: [chunk.content],
-					id: "",
-					created_at: new Date()
-				}
-				messages = [...messages, current_streaming_msg]
+		socket.on("msg_chunk", (chunk: Pick<Msg, "role" | "content"> & { thinking: boolean }) => {
+			if (chunk.thinking) {
+				thinking_message += chunk.content
+				is_typing = true
 			} else {
-				current_streaming_msg.content += chunk.content
-				current_streaming_msg.chunks = [...current_streaming_msg.chunks, chunk.content]
-				messages = messages
+				if (!current_streaming_msg) {
+					current_streaming_msg = {
+						role: chunk.role,
+						content: chunk.content,
+						chunks: [{ content: chunk.content }],
+						id: "",
+						created_at: new Date()
+					}
+					messages = [...messages, current_streaming_msg]
+				} else {
+					current_streaming_msg.content += chunk.content
+					current_streaming_msg.chunks = [
+						...current_streaming_msg.chunks,
+						{ content: chunk.content }
+					]
+					messages = messages
+				}
+				is_typing = false
 			}
 		})
 
@@ -49,19 +59,23 @@
 
 	function send_message() {
 		if (!input.trim()) return
-		const new_msg: Msg & { chunks: string[] } = {
+		const new_msg: Msg & { chunks: { content: string }[] } = {
 			role: "User" as const,
 			content: input,
-			chunks: [input],
+			chunks: [{ content: input }],
 			id: "",
 			created_at: new Date()
 		}
+
 		messages = [...messages, new_msg]
+
 		current_streaming_msg = null
+		thinking_message = ""
+
 		socket.emit("msg", { content: input })
+
 		input = ""
 
-		// Scroll to bottom with offset after sending message
 		if (messages_container) {
 			const offset = 160
 			messages_container.scrollTo({
@@ -83,10 +97,17 @@
 			<Message {msg} root={msg.role === "User" ? last_user_message : undefined} />
 		{/each}
 
-		{#if is_typing}
+		{#if thinking_message.length > 0}
 			<Message
-				msg={{ role: "Being", content: "", chunks: [], id: "", created_at: new Date() }}
+				msg={{
+					role: "Being",
+					content: thinking_message,
+					chunks: [{ content: thinking_message }],
+					id: "",
+					created_at: new Date()
+				}}
 				root={undefined}
+				is_thinking={true}
 			/>
 		{/if}
 

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { Msg } from "@luz/db-client"
 
-	export let msg: Msg & { chunks: string[] }
+	export let msg: Msg & { chunks: { content: string }[] }
+	export let is_thinking = false
 	export let root: HTMLDivElement | null | undefined
 </script>
 
@@ -9,14 +10,12 @@
 	<div
 		class="leading-175% px3 py2 rounded-lg {msg.role === 'User'
 			? 'ml-auto bg-[#2a1f2d] italic'
-			: ''}"
+			: ''} {is_thinking ? 'text-stone-500' : ''}"
 	>
 		{#if msg.chunks.length > 0}
-			<div class="space-y-2">
-				{#each msg.chunks as chunk}
-					<p class="opacity-0 animate-fade-in">{chunk}</p>
-				{/each}
-			</div>
+			{#each msg.chunks as chunk}
+				<span class="animate-fade-in whitespace-pre-wrap">{chunk.content}</span>
+			{/each}
 		{:else}
 			<span class="inline-flex gap-1">
 				<span class="animate-bounce">•</span>

@@ -11,16 +11,16 @@ export const STATE: State = {
 }
 
 export async function init_state() {
-    const messages = await db.msg.findMany({
-        take: 10,
-        orderBy: {
-            created_at: "desc",
-        },
-        select: {
-            role: true,
-            content: true,
-        },
-    })
-
-    STATE.user_chat.messages = messages
+    // const messages = await db.msg.findMany({
+    //     take: 10,
+    //     orderBy: {
+    //         created_at: "desc",
+    //     },
+    //     select: {
+    //         role: true,
+    //         content: true,
+    //     },
+    // })
+    // messages.reverse()
+    // STATE.user_chat.messages = [...messages]
 }

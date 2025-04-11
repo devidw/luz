@@ -1,6 +1,6 @@
 import { z } from "zod"
 import { db } from "./lib/db.js"
-import { Msg_Role } from "@luz/db-client"
+import { Msg, Msg_Role } from "@luz/db-client"
 import { infer } from "./lib/inference.js"
 import { ws_server } from "./server.js"
 import { STATE } from "./state.js"
@@ -22,9 +22,10 @@ export async function msg_handler(payload: unknown) {
 
     const user_msg = {
         id: randomUUID(),
+        created_at: new Date(),
         role: Msg_Role.User,
         content: parsed.content,
-    }
+    } satisfies Partial<Msg>
 
     STATE.user_chat.messages.push(user_msg)
 
@@ -36,32 +37,51 @@ export async function msg_handler(payload: unknown) {
 
     let full_content = ""
     let sentence = ""
+    let is_thinking = false
 
     for await (const chunk of generator) {
         full_content += chunk
         sentence += chunk
 
-        const parts = split_into_sentence(sentence)
-
-        if (parts.length > 1) {
-            const fst = parts.shift()!
-
-            sentence = parts[0]
-
-            ws_server.emit("msg_chunk", {
-                role: Msg_Role.Being,
-                content: fst,
-            })
+        // Check for thinking tags
+        if (chunk.includes("<think>") && !is_thinking) {
+            is_thinking = true
+            continue
         }
+
+        if (chunk.includes("</think>") && is_thinking) {
+            is_thinking = false
+            continue
+        }
+
+        ws_server.emit("msg_chunk", {
+            role: Msg_Role.Being,
+            content: chunk,
+            thinking: is_thinking,
+        })
+
+        // const parts = split_into_sentence(sentence)
+
+        // if (parts.length > 1) {
+        //     const fst = parts.shift()!
+
+        //     sentence = parts[0]
+
+        //     ws_server.emit("msg_chunk", {
+        //         role: Msg_Role.Being,
+        //         content: fst,
+        //     })
+        // }
     }
 
     ws_server.emit("typing_status", "idle")
 
     const being_msg = {
         id: randomUUID(),
+        created_at: new Date(),
         role: Msg_Role.Being,
         content: full_content,
-    }
+    } satisfies Partial<Msg>
 
     STATE.user_chat.messages.push(being_msg)
 

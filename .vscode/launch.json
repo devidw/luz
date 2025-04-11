@@ -1,0 +1,14 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "alive",
+            "type": "node",
+            "request": "attach",
+            "address": "localhost",
+            "port": 7001,
+            "restart": true,
+            // "envFile": "${workspaceFolder}/.env"
+        },
+    ]
+}
