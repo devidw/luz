@@ -12,11 +12,13 @@
 			? 'ml-auto bg-[#2a1f2d] italic'
 			: ''} {is_thinking ? 'text-stone-500' : ''}"
 	>
-		{#if msg.chunks.length > 0}
+		{#if msg.chunks?.length > 0}
 			{#each msg.chunks as chunk}
 				<span class="animate-fade-in whitespace-pre-wrap">{chunk.content}</span>
 			{/each}
-		{:else}{/if}
+		{:else}
+			{msg.content}
+		{/if}
 	</div>
 </div>
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from "svelte"
+	import { onMount, tick } from "svelte"
 	import { io, type Socket } from "socket.io-client"
 	import type { Msg } from "@luz/db-client"
 	import type {
@@ -9,18 +9,43 @@
 	import autosize from "svelte-autosize"
 	import Message from "./Message.svelte"
 	import Fullscreen from "./Fullscreen.svelte"
+	import Persona from "./Persona.svelte"
+	import { STATE } from "./state.svelte.js"
+	import { trpc } from "./trpc.js"
 
-	let messages: (Msg & { chunks: { content: string }[] })[] = []
-	let thinking_message = ""
-	let input = ""
-	let socket: Socket<ServerToClientEvents, ClientToServerEvents>
-	let current_streaming_msg: (Msg & { chunks: { content: string }[] }) | null = null
-	let is_typing = false
-	let messages_container: HTMLDivElement | null = null
-	let last_user_message: HTMLDivElement | null = null
+	let messages = $state<(Msg & { chunks?: { content: string }[] })[]>([])
+	let thinking_message = $state("")
+	let input = $state("")
+	let socket = $state<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null)
+	let current_streaming_msg = $state<(Msg & { chunks: { content: string }[] }) | null>(null)
+	let is_typing = $state(false)
+	let messages_container = $state<HTMLDivElement | null>(null)
+	let last_user_message = $state<HTMLDivElement | null>(null)
+
+	function scroll_to_bottom() {
+		if (messages_container) {
+			const offset = 160
+			messages_container.scrollTo({
+				top: messages_container.scrollHeight - messages_container.clientHeight - offset,
+				behavior: "smooth"
+			})
+		}
+	}
+
+	// onMount(async () => {
+	// 	messages = await trpc.chat_history.query()
+	// 	await tick()
+	// 	scroll_to_bottom()
+	// })
 
 	onMount(() => {
 		socket = io(`ws://${window.location.hostname}:6900`)
+
+		socket.on("chat_history", async (payload) => {
+			messages = payload
+			await tick()
+			scroll_to_bottom()
+		})
 
 		socket.on("msg_chunk", (chunk: Pick<Msg, "role" | "content"> & { thinking: boolean }) => {
 			if (chunk.thinking) {
@@ -33,7 +58,8 @@
 						content: chunk.content,
 						chunks: [{ content: chunk.content }],
 						id: "",
-						created_at: new Date()
+						created_at: new Date(),
+						persona: STATE.persona
 					}
 					messages = [...messages, current_streaming_msg]
 				} else {
@@ -47,7 +73,7 @@
 			}
 		})
 
-		socket.on("typing_status", (status) => {
+		socket?.on("typing_status", (status) => {
 			is_typing = status === "typing"
 		})
 
@@ -63,7 +89,8 @@
 			content: input,
 			chunks: [{ content: input }],
 			id: "",
-			created_at: new Date()
+			created_at: new Date(),
+			persona: STATE.persona
 		}
 
 		messages = [...messages, new_msg]
@@ -71,22 +98,26 @@
 		current_streaming_msg = null
 		thinking_message = ""
 
-		socket.emit("msg", { content: input })
+		socket?.emit("msg", {
+			content: input
+		})
 
 		input = ""
 
-		if (messages_container) {
-			const offset = 160
-			messages_container.scrollTo({
-				top: messages_container.scrollHeight - messages_container.clientHeight - offset,
-				behavior: "smooth"
-			})
-		}
+		scroll_to_bottom()
 	}
+
+	$effect(() => {
+		socket?.emit("persona", STATE.persona)
+	})
 </script>
 
 <div class="h-screen flex flex-col">
 	<Fullscreen />
+
+	<div class="text-center">
+		<Persona />
+	</div>
 
 	<div
 		bind:this={messages_container}
@@ -111,7 +142,8 @@
 					content: thinking_message,
 					chunks: [{ content: thinking_message }],
 					id: "",
-					created_at: new Date()
+					created_at: new Date(),
+					persona: STATE.persona
 				}}
 				root={undefined}
 				is_thinking={true}

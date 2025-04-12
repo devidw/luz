@@ -74,8 +74,8 @@ export async function get_calendar_events(date: Date) {
         )
         .map((event) => ({
             ...event,
-            start: format(new Date(event.start), "HH:mm"),
-            end: format(new Date(event.end), "HH:mm"),
+            start: format(new Date(event.start), "h:mm a"),
+            end: format(new Date(event.end), "h:mm a"),
         }))
 
     if (today_events.length === 0) {

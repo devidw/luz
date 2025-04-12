@@ -8,9 +8,11 @@ import { emb } from "./lib/emb.js"
 import { vec, vec_msg } from "./lib/vec.js"
 import { randomUUID } from "crypto"
 
-const msg_schema = z.object({
+const msg_payload_schema = z.object({
     content: z.string().min(1),
 })
+
+export type Msg_Payload = z.output<typeof msg_payload_schema>
 
 // Split on . ! or ? followed by whitespace or end of string
 function split_into_sentence(input: string): string[] {
@@ -18,13 +20,14 @@ function split_into_sentence(input: string): string[] {
 }
 
 export async function msg_handler(payload: unknown) {
-    const parsed = msg_schema.parse(payload)
+    const parsed = msg_payload_schema.parse(payload)
 
     const user_msg = {
         id: randomUUID(),
         created_at: new Date(),
         role: Msg_Role.User,
         content: parsed.content,
+        persona: STATE.user_chat.persona,
     } satisfies Partial<Msg>
 
     STATE.user_chat.messages.push(user_msg)
@@ -81,6 +84,7 @@ export async function msg_handler(payload: unknown) {
         created_at: new Date(),
         role: Msg_Role.Being,
         content: full_content,
+        persona: STATE.user_chat.persona,
     } satisfies Partial<Msg>
 
     STATE.user_chat.messages.push(being_msg)

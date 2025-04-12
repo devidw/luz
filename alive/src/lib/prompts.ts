@@ -2,6 +2,8 @@ import fs from "node:fs"
 import { format } from "date-fns"
 import { get_weather } from "src/tools/weather.js"
 import { get_calendar_events } from "src/tools/calendar.js"
+import { CONFIG } from "src/config.js"
+import { STATE } from "src/state.js"
 
 type Prompt_Part = {
     func: () => Promise<string>
@@ -12,9 +14,26 @@ type Prompt_Part = {
     }
 }
 
+const PERSONA_PROMPTS: Record<string, string> = {
+    general: "",
+}
+
+const raw_prompt = fs.readFileSync("../data/prompt.md").toString()
+
+for (const persona of CONFIG.personas) {
+    PERSONA_PROMPTS[persona.id] = fs
+        .readFileSync(persona.prompt_path)
+        .toString()
+}
+
 const PROMPT_PARTS: Record<string, Prompt_Part> = {
     date: {
         func: async () => format(new Date(), "EEEE, d. MMMM yy hh:mm a"),
+    },
+    persona: {
+        func: async () => {
+            return PERSONA_PROMPTS[STATE.user_chat.persona]
+        },
     },
     weather: {
         func: () =>
@@ -34,8 +53,6 @@ const PROMPT_PARTS: Record<string, Prompt_Part> = {
         },
     },
 }
-
-const raw_prompt = fs.readFileSync("../data/prompt.md").toString()
 
 export async function compile_prompt() {
     let out = raw_prompt

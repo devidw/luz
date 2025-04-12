@@ -18,4 +18,5 @@ model Msg {
   created_at DateTime @default(now())
   content    String
   role       Msg_Role
+  persona    String   @default("general")
 }
