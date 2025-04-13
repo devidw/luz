@@ -8,13 +8,13 @@
 
 <div bind:this={root} class="w-full flex">
 	<div
-		class="leading-175% px3 py2 rounded-lg {msg.role === 'User'
-			? 'ml-auto bg-[#2a1f2d] italic'
+		class="leading-175% px3 py2 rounded-lg whitespace-pre-wrap {msg.role === 'User'
+			? 'ml-auto max-w-70% bg-[#2a1f2d] italic'
 			: ''} {is_thinking ? 'text-stone-500' : ''}"
 	>
 		{#if msg.chunks?.length > 0}
 			{#each msg.chunks as chunk}
-				<span class="animate-fade-in whitespace-pre-wrap">{chunk.content}</span>
+				<span class="animate-fade-in">{chunk.content}</span>
 			{/each}
 		{:else}
 			{msg.content}

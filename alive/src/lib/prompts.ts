@@ -4,6 +4,7 @@ import { get_weather } from "src/tools/weather.js"
 import { get_calendar_events } from "src/tools/calendar.js"
 import { CONFIG } from "src/config.js"
 import { STATE } from "src/state.js"
+import { mem_recall } from "src/mem/recall.js"
 
 type Prompt_Part = {
     func: () => Promise<string>
@@ -33,6 +34,25 @@ const PROMPT_PARTS: Record<string, Prompt_Part> = {
     persona: {
         func: async () => {
             return PERSONA_PROMPTS[STATE.user_chat.persona]
+        },
+    },
+    mems: {
+        func: async () => {
+            const user_msg = STATE.user_chat.messages.at(-1)
+
+            if (!user_msg) {
+                return ""
+            }
+
+            const mems = await mem_recall({
+                input: user_msg.content,
+            })
+
+            return mems
+                .map(({ item }) => {
+                    return `**${item.id}**\n${item.content}`
+                })
+                .join("\n\n")
         },
     },
     weather: {

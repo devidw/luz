@@ -103,6 +103,14 @@
 		})
 
 		input = ""
+		// Trigger resize after clearing input
+		requestAnimationFrame(() => {
+			const textarea = document.querySelector("textarea")
+			if (textarea) {
+				textarea.style.height = "auto"
+				textarea.dispatchEvent(new Event("input"))
+			}
+		})
 
 		scroll_to_bottom()
 	}
@@ -166,9 +174,9 @@
 					}
 				}}
 				placeholder="Type a message..."
-				class="flex-1 py-4 px-4 border-t border-x border-zinc-800 resize-none bg-transparent leading-175%"
+				class="flex-1 py-4 px-4 border-t border-x border-zinc-500 resize-none bg-transparent leading-175% max-h-200px"
 				style="outline: none;"
-			/>
+			></textarea>
 		</form>
 	</div>
 </div>

@@ -6,7 +6,11 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      '@types/node':
+        specifier: ^22.14.0
+        version: 22.14.0
 
   alive:
     dependencies:

@@ -19,4 +19,25 @@ model Msg {
   content    String
   role       Msg_Role
   persona    String   @default("general")
+  flags      String   @default("")
+
+  @@index([created_at])
+  @@index([role])
+  @@index([persona])
+  @@index([flags])
+}
+
+model Mem {
+  id         String   @id
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  content    String
+}
+
+model Link {
+  source     String
+  target     String
+  created_at DateTime @default(now())
+
+  @@id([source, target])
 }

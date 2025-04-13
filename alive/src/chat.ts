@@ -7,6 +7,7 @@ import { STATE } from "./state.js"
 import { emb } from "./lib/emb.js"
 import { vec, vec_msg } from "./lib/vec.js"
 import { randomUUID } from "crypto"
+import { mem_remember } from "./mem/remember.js"
 
 const msg_payload_schema = z.object({
     content: z.string().min(1),
@@ -21,6 +22,12 @@ function split_into_sentence(input: string): string[] {
 
 export async function msg_handler(payload: unknown) {
     const parsed = msg_payload_schema.parse(payload)
+
+    if (parsed.content.startsWith("/remember")) {
+        const input = parsed.content.replace("/remember", "").trim()
+        await mem_remember({ input })
+        return
+    }
 
     const user_msg = {
         id: randomUUID(),

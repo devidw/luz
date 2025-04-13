@@ -1,13 +1,21 @@
-import { vec_msg } from "../lib/vec.js"
+import { vec_msg, vec_mem } from "../lib/vec.js"
 import { emb } from "../lib/emb.js"
 import { db } from "../lib/db.js"
-import { Msg } from "@luz/db-client"
+import { Mem, Msg } from "@luz/db-client"
 
-export async function sim_search(query: string) {
+export async function sim_search({
+    query,
+    collection,
+}: {
+    query: string
+    collection: "msg" | "mem"
+}) {
     const { embedding } = await emb.embed(query)
 
-    const out = await vec_msg.query({
+    const vec_collection = collection === "msg" ? vec_msg : vec_mem
+    const out = await vec_collection.query({
         queryEmbeddings: [embedding],
+        nResults: 5,
     })
 
     if (!out.distances) {
@@ -15,30 +23,46 @@ export async function sim_search(query: string) {
         return []
     }
 
-    const msgs = await db.msg.findMany({
-        where: {
-            id: {
-                in: out.ids[0],
-            },
-        },
-    })
+    let items: Msg[] | Mem[] = []
+    switch (collection) {
+        case "msg":
+            items = await db.msg.findMany({
+                where: {
+                    id: {
+                        in: out.ids[0],
+                    },
+                },
+            })
+            break
+        case "mem":
+            items = await db.mem.findMany({
+                where: {
+                    id: {
+                        in: out.ids[0],
+                    },
+                },
+            })
+            break
+        default:
+            throw new Error(`Invalid collection type: ${collection}`)
+    }
 
     const merged: {
         distance: number
-        msg: Msg
+        item: Msg | Mem
     }[] = []
 
     for (const [i, id] of out.ids[0].entries()) {
-        const msg = msgs.find((b) => b.id === id)
+        const item = items.find((b) => b.id === id)
 
-        if (!msg) {
-            console.warn(`couldn't find db msg for id ${id}`)
+        if (!item) {
+            console.warn(`couldn't find db ${collection} for id ${id}`)
             continue
         }
 
         merged.push({
             distance: out.distances![0][i],
-            msg,
+            item,
         })
     }
 
