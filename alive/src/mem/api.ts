@@ -1,6 +1,7 @@
 import { db } from "src/lib/db.js"
 import { emb } from "src/lib/emb.js"
 import { vec_mem } from "src/lib/vec.js"
+import { mem_fs_delete, mem_fs_upsert } from "src/mem/fs_api.js"
 
 function extract_links(content: string): string[] {
     const matches = content.match(/\[\[(.*?)\]\]/g)
@@ -8,7 +9,7 @@ function extract_links(content: string): string[] {
     return matches.map((match) => match.slice(2, -2))
 }
 
-export async function mem_upsert({
+export async function upsert_links({
     id,
     content,
 }: {
@@ -16,23 +17,7 @@ export async function mem_upsert({
     content: string
 }) {
     const links = extract_links(content)
-    const { embedding } = await emb.embed(content)
-
     await db.$transaction(async (tx) => {
-        await tx.mem.upsert({
-            where: {
-                id: id,
-            },
-            create: {
-                id,
-                content,
-            },
-            update: {
-                id,
-                content,
-            },
-        })
-
         await tx.link.deleteMany({
             where: {
                 source: id,
@@ -47,30 +32,39 @@ export async function mem_upsert({
                 }
             }),
         })
-
-        await vec_mem.upsert({
-            ids: [id],
-            embeddings: [embedding],
-        })
     })
 }
 
+export async function upsert_vec({
+    id,
+    content,
+}: {
+    id: string
+    content: string
+}) {
+    const { embedding } = await emb.embed(content)
+    await vec_mem.upsert({
+        ids: [id],
+        embeddings: [embedding],
+    })
+}
+
+export async function mem_upsert(mem: { id: string; content: string }) {
+    await mem_fs_upsert(mem)
+    await upsert_vec(mem)
+    await upsert_links(mem)
+}
+
 export async function mem_delete(id: string) {
-    await db.$transaction(async (tx) => {
-        await tx.mem.delete({
-            where: {
-                id: id,
-            },
-        })
+    await mem_fs_delete({ id })
 
-        await tx.link.deleteMany({
-            where: {
-                OR: [{ source: id }, { target: id }],
-            },
-        })
+    await vec_mem.delete({
+        ids: [id],
+    })
 
-        await vec_mem.delete({
-            ids: [id],
-        })
+    await db.link.deleteMany({
+        where: {
+            OR: [{ source: id }, { target: id }],
+        },
     })
 }

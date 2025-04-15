@@ -4,8 +4,7 @@
   "scripts": {
     "dev": "tsx --watch --inspect=0.0.0.0:7001 ./src/main.ts",
     "build": "rm -rf ./dist; tsc",
-    "start": "node ./dist/main.js",
-    "mems": "tsx ./src/mem/ctrl.ts"
+    "start": "node ./dist/main.js"
   },
   "dependencies": {
     "@lmstudio/sdk": "^1.1.0",

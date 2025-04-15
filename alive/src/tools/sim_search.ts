@@ -1,7 +1,8 @@
 import { vec_msg, vec_mem } from "../lib/vec.js"
 import { emb } from "../lib/emb.js"
 import { db } from "../lib/db.js"
-import { Mem, Msg } from "@luz/db-client"
+import { Msg } from "@luz/db-client"
+import { mem_fs_get, type Mem } from "src/mem/fs_api.js"
 
 export async function sim_search({
     query,
@@ -35,13 +36,10 @@ export async function sim_search({
             })
             break
         case "mem":
-            items = await db.mem.findMany({
-                where: {
-                    id: {
-                        in: out.ids[0],
-                    },
-                },
-            })
+            const all = await Promise.all(
+                out.ids[0].map((id) => mem_fs_get({ id })),
+            )
+            items = all.filter(Boolean) as Mem[]
             break
         default:
             throw new Error(`Invalid collection type: ${collection}`)
@@ -53,7 +51,7 @@ export async function sim_search({
     }[] = []
 
     for (const [i, id] of out.ids[0].entries()) {
-        const item = items.find((b) => b.id === id)
+        const item = items.find((mem) => mem.id === id)
 
         if (!item) {
             console.warn(`couldn't find db ${collection} for id ${id}`)

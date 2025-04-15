@@ -1,7 +1,7 @@
 import { tool } from "@lmstudio/sdk"
 import { sim_search } from "./sim_search.js"
 import { z } from "zod"
-import { mem_upsert, mem_delete } from "./mem.js"
+import { mem_upsert, mem_delete } from "../mem/api.js"
 
 export const msg_sim_search_tool = tool({
     name: "find_relevant_messages",

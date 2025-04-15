@@ -27,13 +27,6 @@ model Msg {
   @@index([flags])
 }
 
-model Mem {
-  id         String   @id
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-  content    String
-}
-
 model Link {
   source     String
   target     String
