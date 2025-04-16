@@ -2,6 +2,8 @@ import { tool } from "@lmstudio/sdk"
 import { sim_search } from "./sim_search.js"
 import { z } from "zod"
 import { mem_upsert, mem_delete } from "../mem/api.js"
+import { web_visit } from "./web_visit.js"
+import { web_search } from "./web_search.js"
 
 export const msg_sim_search_tool = tool({
     name: "find_relevant_messages",
@@ -75,5 +77,32 @@ export const mem_delete_tool = tool({
         console.info({ delete_memory: params })
 
         await mem_delete(params.id)
+    },
+})
+
+export const web_search_tool = tool({
+    name: "web_search",
+    description: "search the web",
+    parameters: {
+        query: z.string(),
+    },
+    implementation: async (params) => {
+        console.info({ web_search: params })
+        const results = await web_search(params.query)
+        console.info(results)
+        return results
+    },
+})
+
+export const web_visit_tool = tool({
+    name: "web_visit",
+    description: "visit a webpage",
+    parameters: {
+        url: z.string(),
+    },
+    implementation: async (params) => {
+        console.info({ web_visit: params })
+        const content = await web_visit(params)
+        return content
     },
 })

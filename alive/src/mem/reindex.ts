@@ -11,7 +11,17 @@ import path from "node:path"
 import { upsert_links, upsert_vec } from "./api.js"
 import { mem_fs_get } from "./fs_api.js"
 
-async function reindex() {
+async function mem_index(id: string) {
+    const mem = await mem_fs_get({ id: id })
+
+    if (!mem) {
+        return []
+    }
+
+    return [() => upsert_vec(mem), () => upsert_links(mem)]
+}
+
+export async function reindex() {
     let last_index: Date | null = null
 
     try {
@@ -22,9 +32,11 @@ async function reindex() {
         last_index = new Date(contents)
     } catch {}
 
+    console.info({ last_index })
+
     const files = await fs.readdir(CONFIG.mem_dir)
     const ids = files
-        .filter((f) => f.endsWith(".md") && f !== "_state.txt")
+        .filter((f) => f.endsWith(".md"))
         .map((a) => path.basename(a, path.extname(a)))
 
     const ids_to_index: string[] = []
@@ -36,16 +48,9 @@ async function reindex() {
     }
 
     const jobs = await Promise.all(
-        ids_to_index.map(async (id, index) => {
-            const mem = await mem_fs_get({ id: id })
-
-            if (!mem) {
-                return []
-            }
-
-            console.info(`${index + 1}. ${mem.id}`)
-
-            return [() => upsert_vec(mem), () => upsert_links(mem)]
+        ids_to_index.map(async (id) => {
+            console.info(`mem reindex ${id}`)
+            return mem_index(id)
         }),
     )
 
@@ -54,6 +59,23 @@ async function reindex() {
     }
 
     await fs.writeFile(CONFIG.mem_dir + "/_state.txt", new Date().toISOString())
+}
+
+export async function mem_reindex_watch() {
+    console.info(`mem watch start`)
+
+    const watcher = fs.watch(CONFIG.mem_dir, { recursive: true })
+
+    for await (const event of watcher) {
+        if (!event.filename?.endsWith(".md")) {
+            continue
+        }
+
+        console.info(`mem reindex ${event.filename}`)
+
+        const jobs = await mem_index(event.filename.replace(".md", ""))
+        await Promise.all(jobs)
+    }
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

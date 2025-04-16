@@ -15,18 +15,20 @@
     "date-fns": "^4.1.0",
     "dav": "^1.8.0",
     "dotenv": "^16.5.0",
+    "express": "^5.1.0",
     "node-ical": "^0.20.1",
     "rss-parser": "^3.13.0",
     "socket.io": "^4.8.1",
+    "turndown": "^7.2.0",
     "webdav": "^4.11.4",
-    "zod": "^3.24.2",
-    "express": "^5.1.0"
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/dav": "^1.7.7",
     "@types/express": "^5.0.1",
     "@types/node": "^22.14.0",
+    "@types/turndown": "^5.0.5",
     "tsx": "^4.19.3",
     "typescript": "^5.0.0"
   }

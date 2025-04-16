@@ -11,7 +11,6 @@
 	import Fullscreen from "./Fullscreen.svelte"
 	import Persona from "./Persona.svelte"
 	import { STATE } from "./state.svelte.js"
-	import { trpc } from "./trpc.js"
 
 	let messages = $state<(Msg & { chunks?: { content: string }[] })[]>([])
 	let thinking_message = $state("")
@@ -118,14 +117,14 @@
 	$effect(() => {
 		socket?.emit("persona", STATE.persona)
 	})
+
+	function clear_chat() {
+		socket?.emit("clear")
+	}
 </script>
 
 <div class="h-screen flex flex-col">
 	<Fullscreen />
-
-	<div class="text-center">
-		<Persona />
-	</div>
 
 	<div
 		bind:this={messages_container}
@@ -162,6 +161,12 @@
 	</div>
 
 	<div class="max-w-xl w-full mx-auto">
+		<div class="flex justify-between">
+			<Persona />
+
+			<button on:click={clear_chat}>clear</button>
+		</div>
+
 		<form on:submit|preventDefault={send_message} class="flex">
 			<textarea
 				use:autosize

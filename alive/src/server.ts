@@ -82,4 +82,8 @@ ws_server.on("connection", (socket) => {
         STATE.user_chat.persona = payload
         await load_chat_history()
     })
+
+    socket.on("clear", () => {
+        STATE.user_chat.messages = []
+    })
 })

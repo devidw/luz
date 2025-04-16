@@ -1,12 +1,12 @@
 <script lang="ts">
-	import { trpc } from "./trpc"
+	import { get_trpc } from "./trpc"
 	import { onMount } from "svelte"
 	import { STATE } from "./state.svelte.js"
 
 	let personas: string[] = $state([])
 
 	onMount(async () => {
-		personas = await trpc.personas.query()
+		personas = await get_trpc().personas.query()
 	})
 </script>
 

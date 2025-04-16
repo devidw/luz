@@ -2,20 +2,22 @@
  * alive
  */
 
+console.info("\n\ti think,\n\ttherefore i am\n")
+
 import "./lib/env.js"
 import {
     clear_dynamic_prompt_parts,
     setup_dynamic_prompt_parts,
 } from "./lib/prompts.js"
-
-console.info("i think, therefore i am")
+import { reindex, mem_reindex_watch } from "./mem/reindex.js"
 
 import { http_server } from "./server.js"
 import { init_state } from "./state.js"
 
 async function start() {
-    await init_state()
+    await Promise.all([init_state(), reindex()])
     setup_dynamic_prompt_parts()
+    mem_reindex_watch()
 }
 
 // function stop() {
