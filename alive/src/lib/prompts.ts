@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import { format } from "date-fns"
 import { get_weather } from "src/tools/weather.js"
-import { get_calendar_events } from "src/tools/calendar.js"
+import { get_calendar_events } from "src/tools/apple_calendar.js"
 import { CONFIG } from "src/config.js"
 import { STATE } from "src/state.js"
 import { mem_recall } from "src/mem/recall.js"

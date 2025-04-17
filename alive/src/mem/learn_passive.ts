@@ -5,8 +5,6 @@ import { mem_remember } from "./remember.js"
 import { compile_prompt } from "src/lib/prompts.js"
 
 const PROMPT = `
-it's {{date}}
-
 you are given part of a conversation between a user and their companion
 
 it's your job to identify any information about the user that is relevant to remember long term about them

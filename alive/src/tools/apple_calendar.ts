@@ -65,7 +65,10 @@ export async function get_calendar_events(date: Date) {
         }
     }
 
-    fs.writeFileSync("../data/cal.json", JSON.stringify(all_events, null, 4))
+    fs.writeFileSync(
+        "../data/debug/apple_calendar.json",
+        JSON.stringify(all_events, null, 4),
+    )
 
     const today_events = all_events
         .filter((event) => isSameDay(date, new Date(event.start)))

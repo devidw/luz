@@ -43,6 +43,7 @@ export async function upsert_vec({
     content: string
 }) {
     const { embedding } = await emb.embed(content)
+    // console.info({ emb_dims: embedding.length })
     await vec_mem.upsert({
         ids: [id],
         embeddings: [embedding],

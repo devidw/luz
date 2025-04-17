@@ -10,6 +10,7 @@
 	import Message from "./Message.svelte"
 	import Fullscreen from "./Fullscreen.svelte"
 	import Persona from "./Persona.svelte"
+	import ErrorBox from "./ErrorBox.svelte"
 	import { STATE } from "./state.svelte.js"
 
 	let messages = $state<(Msg & { chunks?: { content: string }[] })[]>([])
@@ -20,6 +21,7 @@
 	let is_typing = $state(false)
 	let messages_container = $state<HTMLDivElement | null>(null)
 	let last_user_message = $state<HTMLDivElement | null>(null)
+	let error = $state<string | null>(null)
 
 	function scroll_to_bottom() {
 		if (messages_container) {
@@ -58,7 +60,8 @@
 						chunks: [{ content: chunk.content }],
 						id: "",
 						created_at: new Date(),
-						persona: STATE.persona
+						persona: STATE.persona,
+						flags: ""
 					}
 					messages = [...messages, current_streaming_msg]
 				} else {
@@ -76,6 +79,13 @@
 			is_typing = status === "typing"
 		})
 
+		socket?.on("error", (err: string) => {
+			error = err
+			setTimeout(() => {
+				error = null
+			}, 5000)
+		})
+
 		return () => {
 			socket?.disconnect()
 		}
@@ -89,7 +99,8 @@
 			chunks: [{ content: input }],
 			id: "",
 			created_at: new Date(),
-			persona: STATE.persona
+			persona: STATE.persona,
+			flags: ""
 		}
 
 		messages = [...messages, new_msg]
@@ -126,6 +137,10 @@
 <div class="h-screen flex flex-col">
 	<Fullscreen />
 
+	{#if error}
+		<ErrorBox {error} />
+	{/if}
+
 	<div
 		bind:this={messages_container}
 		class="flex-1 overflow-y-auto space-y-3 mt3 max-w-3xl mx-auto max-w-xl w-full"
@@ -150,7 +165,8 @@
 					chunks: [{ content: thinking_message }],
 					id: "",
 					created_at: new Date(),
-					persona: STATE.persona
+					persona: STATE.persona,
+					flags: ""
 				}}
 				root={undefined}
 				is_thinking={true}

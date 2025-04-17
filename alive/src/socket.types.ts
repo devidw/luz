@@ -7,6 +7,7 @@ export interface ServerToClientEvents {
     ) => void
     typing_status: (status: "typing" | "idle") => void
     chat_history: (payload: Msg[]) => void
+    error: (payload: unknown) => void
 }
 
 export interface ClientToServerEvents {

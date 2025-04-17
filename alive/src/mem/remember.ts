@@ -11,8 +11,6 @@ import { compile_prompt } from "src/lib/prompts.js"
  */
 
 const PROMPT = `
-it's {{date}}
-
 you are given some new information and it's your job to integrate it into our memory system
 
 part or all of the information might already be covered in the memory system
@@ -27,14 +25,25 @@ if only parts of it are covered and the docs that we have are a good place for t
 
 rephrase content to fit into the memory system
 
-if it makes sense, include a timestamp along with the content as a prefix like
-
-- YYYY-MM-DD : <content>
-- ...
-
 if there is no good place for the new info given, we should create new docs accordingly
 
 information should only ever exist in place, we don't want to have redundant copies fly around in different docs
+
+---
+
+## time
+
+if you are certain about something being today, prefix with "{{today}}", like:
+
+- {{today}} : <content>
+- ...
+
+the placeholder is replaced after you submit your content
+so you just include it and don't have to worry about it
+
+only include it if you are certain it's today tho
+
+---
 
 always be thoughtful about how you mutate the memory system
 
@@ -44,8 +53,6 @@ memory ids should be short identifies similar to file names, lowercase text only
 export async function mem_remember({ input }: { input: string }) {
     console.info({ remember: input })
 
-    const the_prompt = await compile_prompt(PROMPT)
-
     const out = await llm.act(
         {
             messages: [
@@ -54,7 +61,7 @@ export async function mem_remember({ input }: { input: string }) {
                     content: [
                         {
                             type: "text",
-                            text: the_prompt,
+                            text: PROMPT,
                         },
                     ],
                 },

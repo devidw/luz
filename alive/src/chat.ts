@@ -21,89 +21,97 @@ function split_into_sentence(input: string): string[] {
 }
 
 export async function msg_handler(payload: unknown) {
-    const parsed = msg_payload_schema.parse(payload)
+    try {
+        const parsed = msg_payload_schema.parse(payload)
 
-    if (parsed.content.startsWith("/remember")) {
-        const input = parsed.content.replace("/remember", "").trim()
-        await mem_remember({ input })
-        return
-    }
-
-    const user_msg = {
-        id: randomUUID(),
-        created_at: new Date(),
-        role: Msg_Role.User,
-        content: parsed.content,
-        persona: STATE.user_chat.persona,
-    } satisfies Partial<Msg>
-
-    STATE.user_chat.messages.push(user_msg)
-
-    ws_server.emit("typing_status", "typing")
-
-    const generator = infer({
-        messages: STATE.user_chat.messages,
-    })
-
-    let full_content = ""
-    let sentence = ""
-    let is_thinking = false
-
-    for await (const chunk of generator) {
-        full_content += chunk
-        sentence += chunk
-
-        // Check for thinking tags
-        if (chunk.includes("<think>") && !is_thinking) {
-            is_thinking = true
-            continue
+        if (parsed.content.startsWith("/remember")) {
+            const input = parsed.content.replace("/remember", "").trim()
+            await mem_remember({ input })
+            return
         }
 
-        if (chunk.includes("</think>") && is_thinking) {
-            is_thinking = false
-            continue
-        }
+        const user_msg = {
+            id: randomUUID(),
+            created_at: new Date(),
+            role: Msg_Role.User,
+            content: parsed.content,
+            persona: STATE.user_chat.persona,
+        } satisfies Partial<Msg>
 
-        ws_server.emit("msg_chunk", {
-            role: Msg_Role.Being,
-            content: chunk,
-            thinking: is_thinking,
+        STATE.user_chat.messages.push(user_msg)
+
+        ws_server.emit("typing_status", "typing")
+
+        const generator = infer({
+            messages: STATE.user_chat.messages,
         })
 
-        // const parts = split_into_sentence(sentence)
+        let full_content = ""
+        let sentence = ""
+        let is_thinking = false
 
-        // if (parts.length > 1) {
-        //     const fst = parts.shift()!
+        for await (const chunk of generator) {
+            full_content += chunk
+            sentence += chunk
 
-        //     sentence = parts[0]
+            // Check for thinking tags
+            if (chunk.includes("<think>") && !is_thinking) {
+                is_thinking = true
+                continue
+            }
 
-        //     ws_server.emit("msg_chunk", {
-        //         role: Msg_Role.Being,
-        //         content: fst,
-        //     })
-        // }
+            if (chunk.includes("</think>") && is_thinking) {
+                is_thinking = false
+                continue
+            }
+
+            ws_server.emit("msg_chunk", {
+                role: Msg_Role.Being,
+                content: chunk,
+                thinking: is_thinking,
+            })
+
+            // const parts = split_into_sentence(sentence)
+
+            // if (parts.length > 1) {
+            //     const fst = parts.shift()!
+
+            //     sentence = parts[0]
+
+            //     ws_server.emit("msg_chunk", {
+            //         role: Msg_Role.Being,
+            //         content: fst,
+            //     })
+            // }
+        }
+
+        ws_server.emit("typing_status", "idle")
+
+        const being_msg = {
+            id: randomUUID(),
+            created_at: new Date(),
+            role: Msg_Role.Being,
+            content: full_content,
+            persona: STATE.user_chat.persona,
+        } satisfies Partial<Msg>
+
+        STATE.user_chat.messages.push(being_msg)
+
+        await db.msg.createMany({
+            data: [user_msg, being_msg],
+        })
+
+        const embeddings = await emb.embed([
+            user_msg.content,
+            being_msg.content,
+        ])
+
+        await vec_msg.add({
+            ids: [user_msg.id, being_msg.id],
+            embeddings: embeddings.map((a) => a.embedding),
+        })
+    } catch (e) {
+        console.error(e)
+        ws_server.emit("error", e)
     }
-
-    ws_server.emit("typing_status", "idle")
-
-    const being_msg = {
-        id: randomUUID(),
-        created_at: new Date(),
-        role: Msg_Role.Being,
-        content: full_content,
-        persona: STATE.user_chat.persona,
-    } satisfies Partial<Msg>
-
-    STATE.user_chat.messages.push(being_msg)
-
-    await db.msg.createMany({
-        data: [user_msg, being_msg],
-    })
-
-    const embeddings = await emb.embed([user_msg.content, being_msg.content])
-
-    await vec_msg.add({
-        ids: [user_msg.id, being_msg.id],
-        embeddings: embeddings.map((a) => a.embedding),
-    })
 }

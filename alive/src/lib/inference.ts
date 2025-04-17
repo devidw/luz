@@ -42,10 +42,10 @@ export async function* infer({
         })),
     ]
 
-    fs.writeFileSync("../data/sys_msg.md", sys_msg)
+    fs.writeFileSync("../data/debug/sys_msg.md", sys_msg)
 
     fs.writeFileSync(
-        "../data/chat.debug.json",
+        "../data/debug/chat.json",
         JSON.stringify(chat_messages, null, 4),
     )
 

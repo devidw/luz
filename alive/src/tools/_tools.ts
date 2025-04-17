@@ -4,6 +4,7 @@ import { z } from "zod"
 import { mem_upsert, mem_delete } from "../mem/api.js"
 import { web_visit } from "./web_visit.js"
 import { web_search } from "./web_search.js"
+import { format } from "date-fns"
 
 export const msg_sim_search_tool = tool({
     name: "find_relevant_messages",
@@ -60,9 +61,14 @@ export const mem_upsert_tool = tool({
     implementation: async (params) => {
         console.info({ upsert_memory: params })
 
+        const content = params.content.replaceAll(
+            "{{today}}",
+            format(new Date(), "yyyy-MM-dd"),
+        )
+
         await mem_upsert({
             id: params.id,
-            content: params.content,
+            content: content,
         })
     },
 })
