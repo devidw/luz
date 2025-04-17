@@ -22,15 +22,7 @@ export async function get_weather({
         rain_total: data.daily.precipitation_sum[0],
     }
 
-    const summary = `The temperature will range from ${processed.min_temp}°C to ${processed.max_temp}°C with a ${processed.rain_prob}% chance of rain and ${processed.rain_total}mm of precipitation.`
-
-    return summary
-
-    // return {
-    //     raw: data,
-    //     processed,
-    //     summary,
-    // }
+    return processed
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

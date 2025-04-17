@@ -12,6 +12,16 @@ const config_schema = z.object({
             }),
         )
         .default([]),
+    integrations: z
+        .object({
+            apple_calendar: z.object({}),
+            weather: z.object({
+                latitude: z.number(),
+                longitude: z.number(),
+            }),
+        })
+        .partial()
+        .default({}),
 })
 
 const raw = fs.readFileSync("../data/config.json").toString()

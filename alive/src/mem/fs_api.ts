@@ -1,6 +1,7 @@
 import fs from "node:fs/promises"
 import path from "node:path"
 import { CONFIG } from "../config.js"
+import { vec_mem } from "src/lib/vec.js"
 
 export type Mem = {
     id: string
@@ -9,21 +10,23 @@ export type Mem = {
 
 await fs.mkdir(CONFIG.mem_dir, { recursive: true })
 
-export async function mem_fs_get(params: { id: string } | { path: string }) {
+export async function mem_fs_get({ id }: { id: string }) {
     try {
-        const file_path =
-            "id" in params
-                ? path.join(CONFIG.mem_dir, `${params.id}.md`)
-                : params.path
-
+        const file_path = path.join(CONFIG.mem_dir, `${id}.md`)
         const content = await fs.readFile(file_path, "utf-8")
 
         return {
-            id: "id" in params ? params.id : path.basename(file_path, ".md"),
+            id,
             content,
         }
     } catch (e) {
-        console.error(e)
+        if (e instanceof Error && "code" in e && e.code === "ENOENT") {
+            await vec_mem.delete({ ids: [id] })
+            console.info(`del orphan mem ${id}`)
+        } else {
+            console.error(e)
+        }
+
         return null
     }
 }

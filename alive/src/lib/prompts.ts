@@ -15,11 +15,11 @@ type Prompt_Part = {
     }
 }
 
+const RAW_PROMPT = fs.readFileSync("../data/prompt.md").toString()
+
 const PERSONA_PROMPTS: Record<string, string> = {
     general: "",
 }
-
-const raw_prompt = fs.readFileSync("../data/prompt.md").toString()
 
 for (const persona of CONFIG.personas) {
     PERSONA_PROMPTS[persona.id] = fs
@@ -55,27 +55,56 @@ const PROMPT_PARTS: Record<string, Prompt_Part> = {
                 .join("\n\n")
         },
     },
-    weather: {
-        func: () =>
-            get_weather({
-                latitude: 37.7749,
-                longitude: -122.4194,
-                date: new Date(),
-            }),
-        cache: {
-            frequency: 1000 * 60 * 60, // hourly
-        },
-    },
-    calendar: {
-        func: () => get_calendar_events(new Date()),
-        cache: {
-            frequency: 1000 * 60 * 60, // hourly
-        },
-    },
 }
 
-export async function compile_prompt() {
-    let out = raw_prompt
+if (CONFIG.integrations.weather) {
+    PROMPT_PARTS["weather"] = {
+        func: async () => {
+            if (!CONFIG.integrations.weather) {
+                return ""
+            }
+
+            const processed = await get_weather({
+                latitude: CONFIG.integrations.weather.latitude,
+                longitude: CONFIG.integrations.weather.longitude,
+                date: new Date(),
+            })
+
+            const summary = `The temperature will range from ${processed.min_temp}°C to ${processed.max_temp}°C with a ${processed.rain_prob}% chance of rain and ${processed.rain_total}mm of precipitation.`
+
+            return summary
+        },
+        cache: {
+            frequency: 1000 * 60 * 60, // hourly
+        },
+    }
+}
+
+if (CONFIG.integrations.apple_calendar) {
+    PROMPT_PARTS["apple_calendar"] = {
+        func: async () => {
+            const events = await get_calendar_events(new Date())
+
+            if (events.length === 0) {
+                return "No events found for this date."
+            }
+
+            return events
+                .map((event) => {
+                    const start = format(event.start, "h:mm a")
+                    const end = format(event.end, "h:mm a")
+                    return `${event.summary} (${start}-${end})`
+                })
+                .join("\n")
+        },
+        cache: {
+            frequency: 1000 * 60 * 60, // hourly
+        },
+    }
+}
+
+export async function compile_prompt(prompt?: string) {
+    let out = prompt ?? RAW_PROMPT
 
     for (const [key, part] of Object.entries(PROMPT_PARTS)) {
         let val: string | undefined = undefined

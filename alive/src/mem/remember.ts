@@ -4,12 +4,15 @@ import {
     mem_upsert_tool,
 } from "src/tools/_tools.js"
 import { llm } from "../lib/inference.js"
+import { compile_prompt } from "src/lib/prompts.js"
 
 /**
  * one thing we could do here to add one more step of high quality is have it propose the change first for review and then we give it a checklist to tick all boxes, then when all boxes tick, it triggers the actual operation, if not it has to change and propose changes, if it ticks al boxes it goes ahead, otherwise repeats the cycle
  */
 
 const PROMPT = `
+it's {{date}}
+
 you are given some new information and it's your job to integrate it into our memory system
 
 part or all of the information might already be covered in the memory system
@@ -24,6 +27,11 @@ if only parts of it are covered and the docs that we have are a good place for t
 
 rephrase content to fit into the memory system
 
+if it makes sense, include a timestamp along with the content as a prefix like
+
+- YYYY-MM-DD : <content>
+- ...
+
 if there is no good place for the new info given, we should create new docs accordingly
 
 information should only ever exist in place, we don't want to have redundant copies fly around in different docs
@@ -36,6 +44,8 @@ memory ids should be short identifies similar to file names, lowercase text only
 export async function mem_remember({ input }: { input: string }) {
     console.info({ remember: input })
 
+    const the_prompt = await compile_prompt(PROMPT)
+
     const out = await llm.act(
         {
             messages: [
@@ -44,7 +54,7 @@ export async function mem_remember({ input }: { input: string }) {
                     content: [
                         {
                             type: "text",
-                            text: PROMPT,
+                            text: the_prompt,
                         },
                     ],
                 },
@@ -53,7 +63,7 @@ export async function mem_remember({ input }: { input: string }) {
                     content: [
                         {
                             type: "text",
-                            text: "input for new memory integration: " + input,
+                            text: "new memory input to process: " + input,
                         },
                     ],
                 },

@@ -71,9 +71,11 @@ export async function mem_reindex_watch() {
             continue
         }
 
-        console.info(`mem reindex ${event.filename}`)
+        const id = event.filename.replace(".md", "")
 
-        const jobs = await mem_index(event.filename.replace(".md", ""))
+        console.info(`mem reindex ${id}`)
+
+        const jobs = await mem_index(id)
         await Promise.all(jobs)
     }
 }

@@ -1,4 +1,4 @@
-import { format, isSameDay } from "date-fns"
+import { isSameDay } from "date-fns"
 import ical, { VEvent } from "node-ical"
 import * as dav from "dav"
 import "../lib/env.js"
@@ -27,7 +27,7 @@ export async function get_calendar_events(date: Date) {
     })
 
     if (!account.calendars || account.calendars.length === 0) {
-        return "No calendars found."
+        return []
     }
 
     const all_events: Pick<VEvent, "summary" | "start" | "end">[] = []
@@ -74,17 +74,15 @@ export async function get_calendar_events(date: Date) {
         )
         .map((event) => ({
             ...event,
-            start: format(new Date(event.start), "h:mm a"),
-            end: format(new Date(event.end), "h:mm a"),
+            start: new Date(event.start),
+            end: new Date(event.end),
         }))
 
     if (today_events.length === 0) {
-        return "No events found for this date."
+        return []
     }
 
     return today_events
-        .map((event) => `${event.summary} (${event.start}-${event.end})`)
-        .join("\n")
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
