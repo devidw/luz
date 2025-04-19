@@ -12,6 +12,7 @@ export interface ServerToClientEvents {
 
 export interface ClientToServerEvents {
     msg: (payload: Msg_Payload) => void
+    regen: () => void
     persona: (payload: string) => void
     clear: () => void
 }

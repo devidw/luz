@@ -1,11 +1,12 @@
 import { db } from "./lib/db.js"
 import type { Msg } from "@luz/db-client"
 import { ws_server } from "./server.js"
+import { STORE } from "./store.js"
 
 type State = {
     user_chat: {
         persona: string
-        messages: Pick<Msg, "role" | "content">[]
+        messages: Msg[]
     }
 }
 
@@ -23,14 +24,13 @@ export async function load_chat_history() {
     const messages = await db.msg.findMany({
         where: {
             persona: STATE.user_chat.persona,
+            created_at: {
+                gt: STORE.last_clear,
+            },
         },
         take: 10,
         orderBy: {
             created_at: "desc",
-        },
-        select: {
-            role: true,
-            content: true,
         },
     })
 

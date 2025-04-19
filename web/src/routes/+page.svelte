@@ -79,8 +79,8 @@
 			is_typing = status === "typing"
 		})
 
-		socket?.on("error", (err: string) => {
-			error = err
+		socket?.on("error", (err: unknown) => {
+			error = String(err)
 			setTimeout(() => {
 				error = null
 			}, 5000)
@@ -132,6 +132,11 @@
 	function clear_chat() {
 		socket?.emit("clear")
 	}
+
+	function regenerate_last() {
+		messages = messages.slice(0, -1)
+		socket?.emit("regen")
+	}
 </script>
 
 <div class="h-screen flex flex-col">
@@ -146,7 +151,13 @@
 		class="flex-1 overflow-y-auto space-y-3 mt3 max-w-3xl mx-auto max-w-xl w-full"
 	>
 		{#each messages as msg}
-			<Message {msg} root={msg.role === "User" ? last_user_message : undefined} />
+			<Message
+				msg={{
+					...msg,
+					chunks: msg.chunks || [{ content: msg.content }]
+				}}
+				root={msg.role === "User" ? last_user_message : undefined}
+			/>
 		{/each}
 
 		{#if is_typing}
@@ -180,7 +191,10 @@
 		<div class="flex justify-between">
 			<Persona />
 
-			<button on:click={clear_chat}>clear</button>
+			<div class="flex gap-2">
+				<button on:click={regenerate_last}>regen</button>
+				<button on:click={clear_chat}>clear</button>
+			</div>
 		</div>
 
 		<form on:submit|preventDefault={send_message} class="flex">

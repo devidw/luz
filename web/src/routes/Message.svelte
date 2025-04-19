@@ -1,12 +1,17 @@
 <script lang="ts">
 	import type { Msg } from "@luz/db-client"
+	import { get_trpc } from "./trpc.js"
 
 	export let msg: Msg & { chunks: { content: string }[] }
 	export let is_thinking = false
 	export let root: HTMLDivElement | null | undefined
+
+	async function delete_message() {
+		await get_trpc().delete_message.mutate({ id: msg.id })
+	}
 </script>
 
-<div bind:this={root} class="w-full flex">
+<div bind:this={root} class="w-full flex flex-col">
 	<div
 		class="leading-175% px3 py2 rounded-lg whitespace-pre-wrap {msg.role === 'User'
 			? 'ml-auto max-w-70% bg-[#2a1f2d] italic'
@@ -20,6 +25,12 @@
 			{msg.content}
 		{/if}
 	</div>
+	<button
+		on:click={delete_message}
+		class="text-xs text-stone-500 hover:text-stone-300 self-end mt-1"
+	>
+		delete
+	</button>
 </div>
 
 <style>

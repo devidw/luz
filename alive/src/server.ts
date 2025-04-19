@@ -1,7 +1,7 @@
 import { Server } from "socket.io"
 import express from "express"
 import cors from "cors"
-import { msg_handler } from "./chat.js"
+import { msg_handler, regen_handler } from "./chat.js"
 import type {
     ClientToServerEvents,
     ServerToClientEvents,
@@ -11,6 +11,7 @@ import { app_router } from "./trpc.js"
 import { createExpressMiddleware } from "@trpc/server/adapters/express"
 import { createServer } from "http"
 import { load_chat_history, STATE } from "./state.js"
+import { STORE } from "./store.js"
 
 const allowed_ips = new Set(CONFIG.ip_whitelist)
 
@@ -73,6 +74,7 @@ ws_server.on("connection", (socket) => {
     })
 
     socket.on("msg", msg_handler)
+    socket.on("regen", regen_handler)
 
     socket.on("persona", async (payload) => {
         if (STATE.user_chat.persona === payload) {
@@ -84,6 +86,7 @@ ws_server.on("connection", (socket) => {
     })
 
     socket.on("clear", () => {
+        STORE.last_clear = new Date().toISOString()
         STATE.user_chat.messages = []
     })
 })

@@ -29,7 +29,7 @@ for (const persona of CONFIG.personas) {
 
 const PROMPT_PARTS: Record<string, Prompt_Part> = {
     date: {
-        func: async () => format(new Date(), "EEEE, d. MMMM yy hh:mm a"),
+        func: async () => format(new Date(), "EEEE, d. MMMM yyyy hh:mm a"),
     },
     persona: {
         func: async () => {
@@ -50,7 +50,13 @@ const PROMPT_PARTS: Record<string, Prompt_Part> = {
 
             return mems
                 .map(({ item }) => {
-                    return `**${item.id}**\n${item.content}`
+                    const content = item.content
+                        .trim()
+                        .split("\n")
+                        .map((a) => a.trim())
+                        .filter((a) => a.length > 0)
+                        .join("\n")
+                    return `**${item.id.replaceAll("_", "")}**\n\`\`\`\n${content}\n\`\`\``
                 })
                 .join("\n\n")
         },

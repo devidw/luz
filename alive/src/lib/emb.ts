@@ -1,8 +1,3 @@
-import { lm } from "./lm.js"
+import { EMBEDDING_MODEL_KEY, lm } from "./lm.js"
 
-export const emb = await lm.embedding.model(
-    "text-embedding-nomic-embed-text-v1.5",
-    {
-        verbose: false,
-    },
-)
+export const emb = await lm.embedding.model(EMBEDDING_MODEL_KEY)

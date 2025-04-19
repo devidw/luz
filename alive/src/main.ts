@@ -5,6 +5,7 @@
 console.info("\n\ti think,\n\ttherefore i am\n")
 
 import "./lib/env.js"
+import { mb_load_models } from "./lib/lm.js"
 import {
     clear_dynamic_prompt_parts,
     setup_dynamic_prompt_parts,
@@ -15,6 +16,7 @@ import { http_server } from "./server.js"
 import { init_state } from "./state.js"
 
 async function start() {
+    await mb_load_models()
     await Promise.all([init_state(), reindex()])
     setup_dynamic_prompt_parts()
     mem_reindex_watch()

@@ -20,6 +20,76 @@ function split_into_sentence(input: string): string[] {
     return input.split(/(?<=[.!?])\s+/).filter((s) => s.length > 0)
 }
 
+async function generate_message_content(
+    messages: Pick<Msg, "role" | "content">[],
+) {
+    ws_server.emit("typing_status", "typing")
+
+    const generator = infer({
+        messages,
+    })
+
+    let full_content = ""
+    let sentence = ""
+    let is_thinking = false
+
+    for await (const chunk of generator) {
+        full_content += chunk
+        sentence += chunk
+
+        if (chunk.includes("<think>") && !is_thinking) {
+            is_thinking = true
+            continue
+        }
+
+        if (chunk.includes("</think>") && is_thinking) {
+            is_thinking = false
+            continue
+        }
+
+        ws_server.emit("msg_chunk", {
+            role: Msg_Role.Being,
+            content: chunk,
+            thinking: is_thinking,
+        })
+    }
+
+    ws_server.emit("typing_status", "idle")
+    return full_content
+}
+
+async function generate_message(messages: Msg[]) {
+    const content = await generate_message_content(
+        messages.map((msg) => ({
+            role: msg.role,
+            content: msg.content,
+        })),
+    )
+
+    const being_msg: Msg = {
+        id: randomUUID(),
+        created_at: new Date(),
+        role: Msg_Role.Being,
+        content,
+        persona: STATE.user_chat.persona,
+        flags: "",
+    }
+
+    STATE.user_chat.messages.push(being_msg)
+
+    await db.msg.create({
+        data: being_msg,
+    })
+
+    const embedding = await emb.embed([being_msg.content])
+    await vec_msg.add({
+        ids: [being_msg.id],
+        embeddings: embedding.map((a) => a.embedding),
+    })
+
+    return being_msg
+}
+
 export async function msg_handler(payload: unknown) {
     try {
         const parsed = msg_payload_schema.parse(payload)
@@ -30,86 +100,54 @@ export async function msg_handler(payload: unknown) {
             return
         }
 
-        const user_msg = {
+        const user_msg: Msg = {
             id: randomUUID(),
             created_at: new Date(),
             role: Msg_Role.User,
             content: parsed.content,
             persona: STATE.user_chat.persona,
-        } satisfies Partial<Msg>
+            flags: "",
+        }
 
         STATE.user_chat.messages.push(user_msg)
 
-        ws_server.emit("typing_status", "typing")
-
-        const generator = infer({
-            messages: STATE.user_chat.messages,
+        await db.msg.create({
+            data: user_msg,
         })
 
-        let full_content = ""
-        let sentence = ""
-        let is_thinking = false
+        const user_embedding = await emb.embed([user_msg.content])
+        await vec_msg.add({
+            ids: [user_msg.id],
+            embeddings: user_embedding.map((a) => a.embedding),
+        })
 
-        for await (const chunk of generator) {
-            full_content += chunk
-            sentence += chunk
+        await generate_message(STATE.user_chat.messages)
+    } catch (e) {
+        console.error(e)
+        ws_server.emit("error", e)
+    }
+}
 
-            // Check for thinking tags
-            if (chunk.includes("<think>") && !is_thinking) {
-                is_thinking = true
-                continue
-            }
+export async function regen_handler() {
+    try {
+        const messages = STATE.user_chat.messages
+        if (messages.length === 0) return
 
-            if (chunk.includes("</think>") && is_thinking) {
-                is_thinking = false
-                continue
-            }
+        const last_msg = messages[messages.length - 1]
 
-            ws_server.emit("msg_chunk", {
-                role: Msg_Role.Being,
-                content: chunk,
-                thinking: is_thinking,
+        if (last_msg.role === Msg_Role.Being) {
+            STATE.user_chat.messages.pop()
+
+            await db.msg.delete({
+                where: { id: last_msg.id },
             })
 
-            // const parts = split_into_sentence(sentence)
-
-            // if (parts.length > 1) {
-            //     const fst = parts.shift()!
-
-            //     sentence = parts[0]
-
-            //     ws_server.emit("msg_chunk", {
-            //         role: Msg_Role.Being,
-            //         content: fst,
-            //     })
-            // }
+            await vec_msg.delete({
+                ids: [last_msg.id],
+            })
         }
 
-        ws_server.emit("typing_status", "idle")
-
-        const being_msg = {
-            id: randomUUID(),
-            created_at: new Date(),
-            role: Msg_Role.Being,
-            content: full_content,
-            persona: STATE.user_chat.persona,
-        } satisfies Partial<Msg>
-
-        STATE.user_chat.messages.push(being_msg)
-
-        await db.msg.createMany({
-            data: [user_msg, being_msg],
-        })
-
-        const embeddings = await emb.embed([
-            user_msg.content,
-            being_msg.content,
-        ])
-
-        await vec_msg.add({
-            ids: [user_msg.id, being_msg.id],
-            embeddings: embeddings.map((a) => a.embedding),
-        })
+        await generate_message(STATE.user_chat.messages)
     } catch (e) {
         console.error(e)
         ws_server.emit("error", e)
