@@ -2,6 +2,8 @@ import { z } from "zod"
 import fs from "node:fs"
 
 const config_schema = z.object({
+    chat_model_key: z.string(),
+    embedding_model_key: z.string(),
     mem_dir: z.string(),
     ip_whitelist: z.array(z.string()).default([]),
     personas: z

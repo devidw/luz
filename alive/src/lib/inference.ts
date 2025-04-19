@@ -1,9 +1,10 @@
 import { Msg, Msg_Role } from "@luz/db-client"
 import fs from "node:fs"
-import { lm, CHAT_MODEL_KEY } from "./lm.js"
+import { lm } from "./lm.js"
 import { compile_prompt } from "./prompts.js"
+import { CONFIG } from "src/config.js"
 
-export const llm = await lm.llm.model(CHAT_MODEL_KEY)
+export const llm = await lm.llm.model(CONFIG.chat_model_key)
 
 export async function* infer({
     messages,
