@@ -9,6 +9,7 @@
  */
 
 import { sim_search } from "src/mem/sim_search.js"
+import { Mem } from "./types.js"
 
 const MIN_CLOSENESS = 1
 const COUNT = 5
@@ -47,5 +48,5 @@ export async function mem_recall({ input }: { input: string }) {
         })
         .sort((a, b) => a.distance - b.distance)
 
-    return outs.slice(0, COUNT)
+    return outs.slice(0, COUNT) as { distance: number; item: Mem }[]
 }

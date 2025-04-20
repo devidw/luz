@@ -4,15 +4,18 @@ import { db } from "../lib/db.js"
 import { Msg } from "@luz/db-client"
 import { mem_fs_get } from "src/mem/fs_api.js"
 import { Mem, Vec_Collection_Id } from "./types.js"
+import type { Where } from "chromadb"
 
 export async function sim_search({
     query,
     collection_id,
     n,
+    where,
 }: {
     query: string
     collection_id: Vec_Collection_Id
     n?: number
+    where?: Where
 }) {
     const { embedding } = await emb.embed(query)
 
@@ -21,6 +24,7 @@ export async function sim_search({
     const out = await vec_collection.query({
         queryEmbeddings: [embedding],
         nResults: n ?? 5,
+        where: where,
     })
 
     if (!out.distances) {

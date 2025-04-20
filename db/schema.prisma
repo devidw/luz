@@ -34,3 +34,21 @@ model Link {
 
   @@id([source, target])
 }
+
+enum Mission_Status {
+  IDEA
+  WIP
+  DONE
+}
+
+model Mission {
+  id         String         @id @default(uuid())
+  created_at DateTime       @default(now())
+  updated_at DateTime       @default(now()) @updatedAt
+  status     Mission_Status @default(IDEA)
+  objective  String
+  state      String         @default("")
+
+  @@index([created_at])
+  @@index([status])
+}

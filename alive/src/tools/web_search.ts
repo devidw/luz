@@ -6,13 +6,14 @@
 import "../lib/env.js"
 import fs from "node:fs"
 
-export async function web_search(query: string) {
+export async function web_search({ query, n }: { query: string; n?: number }) {
     const url = new URL("https://api.search.brave.com/res/v1/web/search")
     url.searchParams.set("q", query)
     url.searchParams.set("safesearch", "off")
+    url.searchParams.set("text_decorations", "0")
     url.searchParams.set("result_filter", "web")
     url.searchParams.set("units", "metric")
-    url.searchParams.set("count", "10")
+    url.searchParams.set("count", n ? `${n}` : `${5}`)
 
     const response = await fetch(url, {
         headers: {
@@ -46,6 +47,6 @@ export async function web_search(query: string) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-    const out = await web_search("alien earth show")
+    const out = await web_search({ query: "alien earth show" })
     fs.writeFileSync("../data/web.json", JSON.stringify(out, null, 4))
 }

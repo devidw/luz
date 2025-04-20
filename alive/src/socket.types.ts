@@ -3,7 +3,7 @@ import { Msg_Payload } from "./chat.js"
 
 export interface ServerToClientEvents {
     msg_chunk: (
-        chunk: Pick<Msg, "role" | "content"> & { thinking: boolean },
+        chunk: Pick<Msg, "role" | "content"> & { thinking?: boolean },
     ) => void
     typing_status: (status: "typing" | "idle") => void
     chat_history: (payload: Msg[]) => void

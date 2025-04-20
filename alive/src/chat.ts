@@ -8,6 +8,7 @@ import { emb } from "./lib/emb.js"
 import { vec, vec_msg } from "./mem/vec.js"
 import { randomUUID } from "crypto"
 import { mem_remember } from "./mem/remember.js"
+import { mission_exec } from "./mission/exec.js"
 
 let status: "idle" | "busy" = "idle"
 let just_replaced = false
@@ -25,7 +26,7 @@ function split_into_sentence(input: string): string[] {
     return input.split(/(?<=[.!?])\s+/).filter((s) => s.length > 0)
 }
 
-async function generate_message_content(messages: Msg[]) {
+async function gen_msg_content(messages: Msg[]) {
     ws_server.emit("typing_status", "typing")
 
     const generator = infer({
@@ -60,16 +61,7 @@ async function generate_message_content(messages: Msg[]) {
     return full_content
 }
 
-async function generate_message(messages: Msg[]) {
-    const content = await generate_message_content(messages)
-
-    if (just_replaced) {
-        just_replaced = false
-        return
-    }
-
-    ws_server.emit("typing_status", "idle")
-
+export async function save_being_msg(content: string) {
     const being_msg: Msg = {
         id: randomUUID(),
         created_at: new Date(),
@@ -77,7 +69,6 @@ async function generate_message(messages: Msg[]) {
         content,
         persona: STATE.user_chat.persona,
         flags: "",
-        img: null,
     }
 
     STATE.user_chat.messages.push(being_msg)
@@ -92,6 +83,21 @@ async function generate_message(messages: Msg[]) {
         ids: [being_msg.id],
         embeddings: embedding.map((a) => a.embedding),
     })
+
+    return being_msg
+}
+
+async function gen_msg(messages: Msg[]) {
+    const content = await gen_msg_content(messages)
+
+    if (just_replaced) {
+        just_replaced = false
+        return
+    }
+
+    ws_server.emit("typing_status", "idle")
+
+    const being_msg = await save_being_msg(content)
 
     return being_msg
 }
@@ -114,6 +120,17 @@ export async function msg_handler(payload: unknown) {
             return
         }
 
+        if (parsed.content.startsWith("/do")) {
+            const input = parsed.content.replace("/do", "").trim()
+            const mission = await db.mission.create({
+                data: {
+                    objective: input,
+                },
+            })
+            await mission_exec({ id: mission.id })
+            return
+        }
+
         const user_msg: Msg = {
             id: randomUUID(),
             created_at: new Date(),
@@ -121,7 +138,6 @@ export async function msg_handler(payload: unknown) {
             content: parsed.content,
             persona: STATE.user_chat.persona,
             flags: "",
-            img: parsed.pic ?? null,
         }
 
         STATE.user_chat.messages.push(user_msg)
@@ -136,7 +152,7 @@ export async function msg_handler(payload: unknown) {
             embeddings: user_embedding.map((a) => a.embedding),
         })
 
-        await generate_message(STATE.user_chat.messages)
+        await gen_msg(STATE.user_chat.messages)
     } catch (e) {
         console.error(e)
         ws_server.emit("error", e)
@@ -164,7 +180,7 @@ export async function regen_handler() {
             })
         }
 
-        await generate_message(STATE.user_chat.messages)
+        await gen_msg(STATE.user_chat.messages)
     } catch (e) {
         console.error(e)
         ws_server.emit("error", e)

@@ -67,3 +67,26 @@ export async function mem_fs_delete({
         console.error(e)
     }
 }
+
+export async function mem_fs_status({
+    collection_id,
+    id,
+}: {
+    collection_id: Vec_Collection_Id
+    id: string
+}) {
+    try {
+        const file_path = path.join(CONFIG.mem_dirs[collection_id], `${id}.md`)
+        const stats = await fs.stat(file_path)
+
+        return {
+            atime: stats.atime,
+            mtime: stats.mtime,
+            ctime: stats.ctime,
+            birthtime: stats.birthtime,
+        }
+    } catch (e) {
+        console.error(e)
+        return null
+    }
+}

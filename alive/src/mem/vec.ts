@@ -1,6 +1,7 @@
 import { ChromaClient } from "chromadb"
 import type { Vec_Collection_Id, Mem } from "./types.js"
 import { emb } from "../lib/emb.js"
+import { mem_fs_status } from "./fs_api.js"
 
 export const vec = new ChromaClient()
 
@@ -43,14 +44,32 @@ export function can_edit(id: Vec_Collection_Id) {
 }
 
 export async function upsert_vec(mem: Mem) {
+    const collection = get_vec_collection(mem.collection_id)
+
+    const fs_status = await mem_fs_status({
+        collection_id: mem.collection_id,
+        id: mem.id,
+    })
+
+    if (!fs_status) {
+        console.warn(`no status for ${mem.collection_id} ${mem.id}`)
+        return
+    }
+
     const { embedding } = await emb.embed(mem.content)
     // console.info({ emb_dims: embedding.length })
-
-    const collection = get_vec_collection(mem.collection_id)
 
     await collection.upsert({
         ids: [mem.id],
         embeddings: [embedding],
+        metadatas: [
+            {
+                atime: fs_status.atime.getTime(),
+                mtime: fs_status.mtime.getTime(),
+                ctime: fs_status.ctime.getTime(),
+                birthtime: fs_status.birthtime.getTime(),
+            },
+        ],
     })
 }
 

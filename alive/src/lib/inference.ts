@@ -43,15 +43,15 @@ export async function* infer({
                     ],
                 }
 
-                if (msg.img && index + 1 === messages.length) {
-                    const img = await lm.files.prepareImageBase64(
-                        "photo",
-                        msg.img,
-                    )
+                // if (msg.img && index + 1 === messages.length) {
+                //     const img = await lm.files.prepareImageBase64(
+                //         "photo",
+                //         msg.img,
+                //     )
 
-                    // @ts-ignore
-                    out.content.push(img)
-                }
+                //     // @ts-ignore
+                //     out.content.push(img)
+                // }
 
                 return out
             }),

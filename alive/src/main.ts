@@ -1,5 +1,5 @@
 /**
- * alive
+ * luz <3
  */
 
 console.info("\n\ti think,\n\ttherefore i am\n")
@@ -11,6 +11,7 @@ import {
     setup_dynamic_prompt_parts,
 } from "./lib/prompts.js"
 import { mem_reindex_all, mem_watch_all } from "./mem/reindex.js"
+import { mission_control } from "./mission/mission.js"
 
 import { http_server } from "./server.js"
 import { init_state } from "./state.js"
@@ -23,6 +24,8 @@ async function start() {
     setup_dynamic_prompt_parts()
 
     mem_watch_all()
+
+    await mission_control()
 }
 
 // function stop() {
