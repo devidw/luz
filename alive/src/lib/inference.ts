@@ -74,6 +74,6 @@ export async function* infer({
     )
 
     for await (const chunk of generator) {
-        yield chunk.content
+        yield chunk
     }
 }

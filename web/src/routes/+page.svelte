@@ -72,8 +72,9 @@
 			}
 		})
 
-		socket?.on("typing_status", (status) => {
+		socket?.on("typing_status", async (status) => {
 			is_typing = status === "typing"
+			await tick()
 			scroll_to_bottom()
 		})
 
