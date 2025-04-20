@@ -12,6 +12,7 @@
 	import Persona from "./Persona.svelte"
 	import ErrorBox from "./ErrorBox.svelte"
 	import { STATE } from "./state.svelte.js"
+	import Photo from "./photo.svelte"
 
 	let messages = $state<(Msg & { chunks?: { content: string }[] })[]>([])
 	let thinking_message = $state("")
@@ -25,11 +26,7 @@
 
 	function scroll_to_bottom() {
 		if (messages_container) {
-			const offset = 160
-			messages_container.scrollTo({
-				top: messages_container.scrollHeight - messages_container.clientHeight - offset,
-				behavior: "smooth"
-			})
+			messages_container.scrollTop = messages_container.scrollHeight
 		}
 	}
 
@@ -77,6 +74,7 @@
 
 		socket?.on("typing_status", (status) => {
 			is_typing = status === "typing"
+			scroll_to_bottom()
 		})
 
 		socket?.on("error", (err: unknown) => {
@@ -91,7 +89,7 @@
 		}
 	})
 
-	function send_message() {
+	async function send_message() {
 		if (!input.trim()) return
 		const new_msg: Msg & { chunks: { content: string }[] } = {
 			role: "User" as const,
@@ -109,7 +107,8 @@
 		thinking_message = ""
 
 		socket?.emit("msg", {
-			content: input
+			content: input,
+			pic: STATE.photo ?? undefined
 		})
 
 		input = ""
@@ -122,6 +121,8 @@
 			}
 		})
 
+		await tick()
+
 		scroll_to_bottom()
 	}
 
@@ -130,12 +131,22 @@
 	})
 
 	function clear_chat() {
+		messages = []
 		socket?.emit("clear")
 	}
 
-	function regenerate_last() {
-		messages = messages.slice(0, -1)
+	function regen() {
+		if (messages.length > 0 && messages[messages.length - 1].role === "Being") {
+			messages = messages.slice(0, -1)
+		}
+
+		current_streaming_msg = null
+
 		socket?.emit("regen")
+	}
+
+	function abort_msg_gen() {
+		socket?.emit("abort")
 	}
 </script>
 
@@ -183,21 +194,24 @@
 				is_thinking={true}
 			/>
 		{/if}
-
-		<div class="h-screen"></div>
 	</div>
 
 	<div class="max-w-xl w-full mx-auto">
 		<div class="flex justify-between">
 			<Persona />
 
-			<div class="flex gap-2">
-				<button on:click={regenerate_last}>regen</button>
+			<!-- <Photo /> -->
+
+			<div class="flex gap-3">
+				{#if is_typing}
+					<button on:click={abort_msg_gen}>abort</button>
+				{/if}
+				<button on:click={regen}>regen</button>
 				<button on:click={clear_chat}>clear</button>
 			</div>
 		</div>
 
-		<form on:submit|preventDefault={send_message} class="flex">
+		<div class="flex">
 			<textarea
 				use:autosize
 				rows="1"
@@ -212,6 +226,6 @@
 				class="flex-1 py-4 px-4 border-t border-x border-zinc-500 resize-none bg-transparent leading-175% max-h-200px"
 				style="outline: none;"
 			></textarea>
-		</form>
+		</div>
 	</div>
 </div>

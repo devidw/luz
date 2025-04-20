@@ -10,16 +10,19 @@ import {
     clear_dynamic_prompt_parts,
     setup_dynamic_prompt_parts,
 } from "./lib/prompts.js"
-import { reindex, mem_reindex_watch } from "./mem/reindex.js"
+import { mem_reindex_all, mem_watch_all } from "./mem/reindex.js"
 
 import { http_server } from "./server.js"
 import { init_state } from "./state.js"
 
 async function start() {
     await mb_load_models()
-    await Promise.all([init_state(), reindex()])
+
+    await Promise.all([init_state(), mem_reindex_all()])
+
     setup_dynamic_prompt_parts()
-    mem_reindex_watch()
+
+    mem_watch_all()
 }
 
 // function stop() {

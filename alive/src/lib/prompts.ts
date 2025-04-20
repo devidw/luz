@@ -29,7 +29,7 @@ for (const persona of CONFIG.personas) {
 
 const PROMPT_PARTS: Record<string, Prompt_Part> = {
     date: {
-        func: async () => format(new Date(), "EEEE, d. MMMM yyyy hh:mm a"),
+        func: async () => format(new Date(), "EEEE, d. MMMM yyyy HH:mm"),
     },
     persona: {
         func: async () => {
@@ -50,13 +50,19 @@ const PROMPT_PARTS: Record<string, Prompt_Part> = {
 
             return mems
                 .map(({ item }) => {
+                    const id = item.id
+                        .trim()
+                        .replaceAll("_", "")
+                        .replaceAll("/", " > ")
+
                     const content = item.content
                         .trim()
                         .split("\n")
                         .map((a) => a.trim())
                         .filter((a) => a.length > 0)
                         .join("\n")
-                    return `**${item.id.replaceAll("_", "")}**\n\`\`\`\n${content}\n\`\`\``
+
+                    return `**${id}**\n\`\`\`\n${content}\n\`\`\``
                 })
                 .join("\n\n")
         },
@@ -90,18 +96,51 @@ if (CONFIG.integrations.apple_calendar) {
     PROMPT_PARTS["apple_calendar"] = {
         func: async () => {
             const events = await get_calendar_events(new Date())
+            const now = new Date()
 
             if (events.length === 0) {
                 return "No events found for this date."
             }
 
-            return events
-                .map((event) => {
-                    const start = format(event.start, "h:mm a")
-                    const end = format(event.end, "h:mm a")
-                    return `${event.summary} (${start}-${end})`
-                })
-                .join("\n")
+            const past: typeof events = []
+            const ongoing: typeof events = []
+            const upcoming: typeof events = []
+
+            for (const event of events) {
+                if (event.end < now) {
+                    past.push(event)
+                } else if (event.start <= now && event.end >= now) {
+                    ongoing.push(event)
+                } else {
+                    upcoming.push(event)
+                }
+            }
+
+            const format_event = (event: (typeof events)[0]) => {
+                const start = format(event.start, "H:mm")
+                const end = format(event.end, "H:mm")
+                return `${event.summary} (${start}-${end})`
+            }
+
+            const format_events = (the_events: typeof events) => {
+                return the_events.map(format_event).join("\n")
+            }
+
+            const sections: string[] = []
+
+            if (past.length > 0) {
+                sections.push("Past events:\n" + format_events(past))
+            }
+
+            if (ongoing.length > 0) {
+                sections.push("Ongoing events:\n" + format_events(ongoing))
+            }
+
+            if (upcoming.length > 0) {
+                sections.push("Upcoming events:\n" + format_events(upcoming))
+            }
+
+            return sections.join("\n\n")
         },
         cache: {
             frequency: 1000 * 60 * 60, // hourly

@@ -10,6 +10,6 @@
 <style>
 	:global(body) {
 		background: black;
-		color: white;
+		color: #ccc;
 	}
 </style>

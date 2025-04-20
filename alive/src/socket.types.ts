@@ -15,4 +15,5 @@ export interface ClientToServerEvents {
     regen: () => void
     persona: (payload: string) => void
     clear: () => void
+    abort: () => void
 }

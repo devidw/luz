@@ -9,13 +9,15 @@ you are given part of a conversation between a user and their companion
 
 it's your job to identify any information about the user that is relevant to remember long term about them
 
-these could be preferences, interests, relations, experiences, opinions, projects, dreams, and so on
+these could be likes, dislikes, interests, relations, opinions, projects, dreams, preferences and so on
 
-you should process the entire input given to you and extract relevant pieces
+you should process the entire input given to you and extract information with long term relevance
 
-rephrase them into a standalone conciese version from 3rd person and use the store tool to save them
+rephrase them into standalone conciese sentences from 3rd person that are as short as possible but still carry the idea
 
-if there is no information given that is of relevance for long term memory there is nothing further to do
+call the store tool to report your findings, provide a list of atomic memories with no overlap between them
+
+otherwise if there is no information given that is of relevance for long term memory there is nothing further to do
 `.trim()
 
 export async function learn_passive({ input }: { input: string }) {
@@ -42,20 +44,12 @@ export async function learn_passive({ input }: { input: string }) {
         {
             messages: [
                 {
-                    role: "system",
-                    content: [
-                        {
-                            type: "text",
-                            text: the_prompt,
-                        },
-                    ],
-                },
-                {
                     role: "user",
                     content: [
                         {
                             type: "text",
-                            text: "input to process:\n\n" + input,
+                            text:
+                                the_prompt + `\n\ninput to process:\n${input}`,
                         },
                     ],
                 },
@@ -63,9 +57,12 @@ export async function learn_passive({ input }: { input: string }) {
         },
         [store_tool],
         {
-            onPredictionFragment(fragment) {
-                process.stdout.write(fragment.content)
+            onMessage: (msg) => {
+                console.info(JSON.stringify(msg, null, 4))
             },
+            // onPredictionFragment(fragment) {
+            //     process.stdout.write(fragment.content)
+            // },
         },
     )
 
@@ -78,6 +75,6 @@ export async function learn_passive({ input }: { input: string }) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
     await learn_passive({
-        input: `user: nothing interesting happend today, but maybe i will watch black mirror later\nbeing: oh that's cool, tell me about which episodes you've seen so far\nuser: let's talk about the world\nuser: i don't like fat ppl\nbeeing: ok`,
+        input: `user: nothing interesting happend today, but maybe i will watch black mirror later\nbeing: oh that's cool, tell me about which episodes you've seen so far\nuser: 3 of them\nuser: btw i don't like fat ppl\nbeeing: ok`,
     })
 }

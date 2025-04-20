@@ -8,42 +8,65 @@
 import fs from "node:fs/promises"
 import { CONFIG } from "src/config.js"
 import path from "node:path"
-import { upsert_links, upsert_vec } from "./api.js"
 import { mem_fs_get } from "./fs_api.js"
-import { vec_mem } from "src/lib/vec.js"
+import { get_vec_collection, upsert_vec } from "./vec.js"
+import { Vec_Collection_Id } from "./types.js"
 
-async function mem_index(id: string) {
-    const mem = await mem_fs_get({ id: id })
+async function mem_index_vec({
+    collection_id,
+    id,
+}: {
+    collection_id: Vec_Collection_Id
+    id: string
+}) {
+    const mem = await mem_fs_get({
+        collection_id,
+        id,
+    })
 
     if (!mem) {
         return
     }
 
     await upsert_vec(mem)
-    await upsert_links(mem)
 }
 
-export async function reindex() {
+async function mem_reindex_collection({
+    collection_id,
+}: {
+    collection_id: Vec_Collection_Id
+}) {
+    const dir = CONFIG.mem_dirs[collection_id]
+
     let last_index: Date | null = null
 
     try {
-        const contents = (
-            await fs.readFile(CONFIG.mem_dir + "/_state.txt")
-        ).toString()
+        const contents = (await fs.readFile(dir + "/_state.txt")).toString()
 
         last_index = new Date(contents)
     } catch {}
 
     console.info({ last_index })
 
-    const files = await fs.readdir(CONFIG.mem_dir)
-    const ids = files
-        .filter((f) => f.endsWith(".md"))
-        .map((a) => path.basename(a, path.extname(a)))
+    const entries = await fs.readdir(dir, {
+        recursive: true,
+        withFileTypes: true,
+    })
+
+    const ids = entries
+        .filter((f) => f.isFile() && f.name.endsWith(".md"))
+        .map((a) => {
+            const id = path.basename(a.name, path.extname(a.name))
+            const full_path = `${a.parentPath}/${id}`.replace(dir + "/", "")
+            return full_path
+        })
+
+    // console.info(ids)
 
     const ids_to_index: string[] = []
+
     for (const id of ids) {
-        const stats = await fs.stat(path.join(CONFIG.mem_dir, id + ".md"))
+        const stats = await fs.stat(path.join(dir, id + ".md"))
         if (!last_index || stats.ctime > last_index) {
             ids_to_index.push(id)
         }
@@ -51,23 +74,38 @@ export async function reindex() {
 
     console.info({ reindex: ids_to_index.length })
 
+    if (ids_to_index.length === 0) {
+        return
+    }
+
     await Promise.all(
         ids_to_index.map(async (id) => {
-            return mem_index(id)
+            return mem_index_vec({
+                collection_id,
+                id,
+            })
         }),
     )
 
-    await fs.writeFile(CONFIG.mem_dir + "/_state.txt", new Date().toISOString())
+    await fs.writeFile(dir + "/_state.txt", new Date().toISOString())
 }
 
 /**
  * for rename on macos i get "rename" but neither the new name nor an event for the new file
  * thus we just force reindex on "rename"
  */
-export async function mem_reindex_watch() {
-    console.info(`mem watch start`)
+async function mem_collection_watch({
+    collection_id,
+}: {
+    collection_id: Vec_Collection_Id
+}) {
+    console.info(`${collection_id} watch start`)
 
-    const watcher = fs.watch(CONFIG.mem_dir, { recursive: true })
+    const collection = get_vec_collection(collection_id)
+
+    const watcher = fs.watch(CONFIG.mem_dirs[collection_id], {
+        recursive: true,
+    })
 
     for await (const event of watcher) {
         if (!event.filename?.endsWith(".md")) {
@@ -80,18 +118,32 @@ export async function mem_reindex_watch() {
 
         switch (event.eventType) {
             case "change": {
-                await mem_index(id)
+                await mem_index_vec({ collection_id, id })
                 break
             }
             case "rename": {
-                await vec_mem.delete({ ids: [id] }) // id is the prev filename, now out of date
-                await reindex()
+                await collection.delete({ ids: [id] }) // id is the prev filename, now out of date
+                await mem_reindex_collection({ collection_id })
                 break
             }
         }
     }
 }
 
+export async function mem_reindex_all() {
+    await mem_reindex_collection({ collection_id: "mem" })
+    await mem_reindex_collection({ collection_id: "diary" })
+    await mem_reindex_collection({ collection_id: "relations" })
+}
+
+export async function mem_watch_all() {
+    mem_collection_watch({ collection_id: "mem" })
+    mem_collection_watch({ collection_id: "diary" })
+    mem_collection_watch({ collection_id: "relations" })
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
-    await reindex()
+    await mem_reindex_all()
+    // await reindex({ collection_id: "relations" })
+    // await mem_collection_watch({ collection_id: "relations" })
 }

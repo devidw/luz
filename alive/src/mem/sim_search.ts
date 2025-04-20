@@ -1,22 +1,26 @@
-import { vec_msg, vec_mem } from "../lib/vec.js"
+import { get_vec_collection } from "./vec.js"
 import { emb } from "../lib/emb.js"
 import { db } from "../lib/db.js"
 import { Msg } from "@luz/db-client"
-import { mem_fs_get, type Mem } from "src/mem/fs_api.js"
+import { mem_fs_get } from "src/mem/fs_api.js"
+import { Mem, Vec_Collection_Id } from "./types.js"
 
 export async function sim_search({
     query,
-    collection,
+    collection_id,
+    n,
 }: {
     query: string
-    collection: "msg" | "mem"
+    collection_id: Vec_Collection_Id
+    n?: number
 }) {
     const { embedding } = await emb.embed(query)
 
-    const vec_collection = collection === "msg" ? vec_msg : vec_mem
+    const vec_collection = get_vec_collection(collection_id)
+
     const out = await vec_collection.query({
         queryEmbeddings: [embedding],
-        nResults: 5,
+        nResults: n ?? 5,
     })
 
     if (!out.distances) {
@@ -25,7 +29,7 @@ export async function sim_search({
     }
 
     let items: Msg[] | Mem[] = []
-    switch (collection) {
+    switch (collection_id) {
         case "msg":
             items = await db.msg.findMany({
                 where: {
@@ -35,14 +39,12 @@ export async function sim_search({
                 },
             })
             break
-        case "mem":
+        default:
             const all = await Promise.all(
-                out.ids[0].map((id) => mem_fs_get({ id })),
+                out.ids[0].map((id) => mem_fs_get({ collection_id, id })),
             )
             items = all.filter(Boolean) as Mem[]
             break
-        default:
-            throw new Error(`Invalid collection type: ${collection}`)
     }
 
     const merged: {
@@ -54,7 +56,8 @@ export async function sim_search({
         const item = items.find((mem) => mem.id === id)
 
         if (!item) {
-            console.warn(`couldn't find db ${collection} for id ${id}`)
+            await vec_collection.delete({ ids: [id] })
+            console.info(`del orphan ${collection_id} ${id}`)
             continue
         }
 

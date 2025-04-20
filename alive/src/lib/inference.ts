@@ -3,41 +3,60 @@ import fs from "node:fs"
 import { lm } from "./lm.js"
 import { compile_prompt } from "./prompts.js"
 import { CONFIG } from "src/config.js"
+import type { ChatMessageData } from "@lmstudio/sdk"
 
 export const llm = await lm.llm.model(CONFIG.chat_model_key)
 
 export async function* infer({
     messages,
+    abort_controller,
 }: {
-    messages: Pick<Msg, "role" | "content">[]
+    messages: Msg[]
+    abort_controller: AbortController
 }) {
-    const sys_msg = await compile_prompt()
+    const sys_msg_content = await compile_prompt()
 
-    const chat_messages = [
-        {
-            role: "system" as const,
-            content: [
-                {
-                    type: "text" as const,
-                    text: sys_msg,
-                },
-            ],
-        },
-        ...messages.map((msg) => ({
-            role: {
-                [Msg_Role.User]: "user" as const,
-                [Msg_Role.Being]: "assistant" as const,
-            }[msg.role],
-            content: [
-                {
-                    type: "text" as const,
-                    text: msg.content,
-                },
-            ],
-        })),
+    const sys_msg = {
+        role: "system" as const,
+        content: [
+            {
+                type: "text" as const,
+                text: sys_msg_content,
+            },
+        ],
+    }
+
+    const chat_messages: ChatMessageData[] = [
+        sys_msg,
+        ...(await Promise.all(
+            messages.map(async (msg, index) => {
+                const out: ChatMessageData = {
+                    role: {
+                        [Msg_Role.User]: "user" as const,
+                        [Msg_Role.Being]: "assistant" as const,
+                    }[msg.role],
+                    content: [
+                        {
+                            type: "text" as const,
+                            text: msg.content,
+                        },
+                    ],
+                }
+
+                if (msg.img && index + 1 === messages.length) {
+                    const img = await lm.files.prepareImageBase64(
+                        "photo",
+                        msg.img,
+                    )
+
+                    // @ts-ignore
+                    out.content.push(img)
+                }
+
+                return out
+            }),
+        )),
     ]
-
-    fs.writeFileSync("../data/debug/sys_msg.md", sys_msg)
 
     fs.writeFileSync(
         "../data/debug/chat.json",
@@ -49,8 +68,8 @@ export async function* infer({
             messages: chat_messages,
         },
         {
-            // maxTokens: 100,
-            temperature: 1,
+            temperature: 0.8,
+            signal: abort_controller.signal,
         },
     )
 

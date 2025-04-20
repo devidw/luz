@@ -1,15 +1,51 @@
-import { sim_search } from "src/tools/sim_search.js"
-
 /**
  * this is the place to build in some better algo to prio by recency & frequency etc
+ *
+ * def want to have min sim
+ * also account for recency (ctime)
+ *
+ * lets pull in more than we want to pick into the prompt
+ * compute ranks and then only take the top_x
  */
+
+import { sim_search } from "src/mem/sim_search.js"
+
+const MIN_CLOSENESS = 1
+const COUNT = 5
+
 export async function mem_recall({ input }: { input: string }) {
-    const mems = await sim_search({
-        query: input,
-        collection: "mem",
-    })
+    const docs = await Promise.all([
+        sim_search({
+            query: input,
+            collection_id: "mem",
+            n: COUNT,
+        }),
+        sim_search({
+            query: input,
+            collection_id: "relations",
+            n: COUNT,
+        }),
+        sim_search({
+            query: input,
+            collection_id: "diary",
+            n: COUNT,
+        }),
+    ])
 
-    const outs = mems.filter((mem) => mem.item.content.trim().length > 0)
+    const outs = docs
+        .flat()
+        .filter((mem) => {
+            if (mem.distance > MIN_CLOSENESS) {
+                return false
+            }
 
-    return outs
+            if (mem.item.content.trim().length === 0) {
+                return false
+            }
+
+            return true
+        })
+        .sort((a, b) => a.distance - b.distance)
+
+    return outs.slice(0, COUNT)
 }

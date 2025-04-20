@@ -5,12 +5,15 @@ import { infer } from "./lib/inference.js"
 import { ws_server } from "./server.js"
 import { STATE } from "./state.js"
 import { emb } from "./lib/emb.js"
-import { vec, vec_msg } from "./lib/vec.js"
+import { vec, vec_msg } from "./mem/vec.js"
 import { randomUUID } from "crypto"
 import { mem_remember } from "./mem/remember.js"
 
+let abort_controller = new AbortController()
+
 const msg_payload_schema = z.object({
     content: z.string().min(1),
+    pic: z.string().nullish(),
 })
 
 export type Msg_Payload = z.output<typeof msg_payload_schema>
@@ -20,13 +23,12 @@ function split_into_sentence(input: string): string[] {
     return input.split(/(?<=[.!?])\s+/).filter((s) => s.length > 0)
 }
 
-async function generate_message_content(
-    messages: Pick<Msg, "role" | "content">[],
-) {
+async function generate_message_content(messages: Msg[]) {
     ws_server.emit("typing_status", "typing")
 
     const generator = infer({
         messages,
+        abort_controller,
     })
 
     let full_content = ""
@@ -37,12 +39,12 @@ async function generate_message_content(
         full_content += chunk
         sentence += chunk
 
-        if (chunk.includes("<think>") && !is_thinking) {
+        if (chunk.includes("<think>")) {
             is_thinking = true
             continue
         }
 
-        if (chunk.includes("</think>") && is_thinking) {
+        if (chunk.includes("</think>")) {
             is_thinking = false
             continue
         }
@@ -59,12 +61,7 @@ async function generate_message_content(
 }
 
 async function generate_message(messages: Msg[]) {
-    const content = await generate_message_content(
-        messages.map((msg) => ({
-            role: msg.role,
-            content: msg.content,
-        })),
-    )
+    const content = await generate_message_content(messages)
 
     const being_msg: Msg = {
         id: randomUUID(),
@@ -107,6 +104,7 @@ export async function msg_handler(payload: unknown) {
             content: parsed.content,
             persona: STATE.user_chat.persona,
             flags: "",
+            img: parsed.pic ?? null,
         }
 
         STATE.user_chat.messages.push(user_msg)
@@ -152,4 +150,9 @@ export async function regen_handler() {
         console.error(e)
         ws_server.emit("error", e)
     }
+}
+
+export function abort_msg_gen() {
+    abort_controller.abort()
+    abort_controller = new AbortController()
 }

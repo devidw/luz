@@ -1,7 +1,7 @@
 import { Server } from "socket.io"
 import express from "express"
 import cors from "cors"
-import { msg_handler, regen_handler } from "./chat.js"
+import { abort_msg_gen, msg_handler, regen_handler } from "./chat.js"
 import type {
     ClientToServerEvents,
     ServerToClientEvents,
@@ -40,6 +40,7 @@ http_server.on("request", app)
 export const ws_server = new Server<ClientToServerEvents, ServerToClientEvents>(
     http_server,
     {
+        maxHttpBufferSize: 10 * 1024 * 1024, // ~10 MiB
         cors: {
             origin: "*",
         },
@@ -89,4 +90,6 @@ ws_server.on("connection", (socket) => {
         STORE.last_clear = new Date().toISOString()
         STATE.user_chat.messages = []
     })
+
+    socket.on("abort", abort_msg_gen)
 })

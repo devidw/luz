@@ -1,7 +1,7 @@
 import {
-    mem_delete_tool,
+    get_mem_delete_tool,
+    get_mem_upsert_tool,
     mem_sim_search_tool,
-    mem_upsert_tool,
 } from "src/tools/_tools.js"
 import { llm } from "../lib/inference.js"
 import { compile_prompt } from "src/lib/prompts.js"
@@ -15,19 +15,23 @@ you are given some new information and it's your job to integrate it into our me
 
 part or all of the information might already be covered in the memory system
 
-we have to make sure to extend or update the memory system to make sure all information goes into it
+use the memory similarity search tool to get an idea of what we have you can lookup relevant other memories that are similar to the information given
 
-to get an idea of what we have you can lookup relevant other memories that are similar to the information given
+1. noop : if the information is already covered in full, we have nothing futher to do
 
-if the information is already covered in full, we have nothing futher to do
+2. op : if we learn something new about the user, we have to make sure to extend or update the memory system
 
-if only parts of it are covered and the docs that we have are a good place for the new info, we should expand on them on update them
+2.1. exisitng : if only parts of it are covered and the docs that we have are a good place for the new info, we should expand on them on update them, rephrase the memory content as necessary to fit into the memory system
 
-rephrase content to fit into the memory system
+2.2. new : if there is no good place for the new info given, we should create new docs accordingly
 
-if there is no good place for the new info given, we should create new docs accordingly
+---
+
+## important
 
 information should only ever exist in place, we don't want to have redundant copies fly around in different docs
+
+always be thoughtful about how you mutate the memory system
 
 ---
 
@@ -45,12 +49,18 @@ only include it if you are certain it's today tho
 
 ---
 
-always be thoughtful about how you mutate the memory system
+## ids
 
 memory ids should be short identifies similar to file names, lowercase text only, underscores instead of whitespace, as short as possible, like 'supplements', 'preferences', 'social_life'
 `.trim()
 
-export async function mem_remember({ input }: { input: string }) {
+export async function mem_remember({
+    input,
+    is_dev,
+}: {
+    input: string
+    is_dev?: boolean
+}) {
     console.info({ remember: input })
 
     const out = await llm.act(
@@ -76,10 +86,17 @@ export async function mem_remember({ input }: { input: string }) {
                 },
             ],
         },
-        [mem_sim_search_tool, mem_upsert_tool, mem_delete_tool],
+        [
+            mem_sim_search_tool,
+            get_mem_upsert_tool({ is_dev: is_dev }),
+            get_mem_delete_tool({ is_dev: is_dev }),
+        ],
         {
             onPredictionFragment(fragment) {
                 process.stdout.write(fragment.content)
+            },
+            onMessage(msg) {
+                console.info(JSON.stringify(msg, null, 4))
             },
         },
     )
@@ -87,4 +104,12 @@ export async function mem_remember({ input }: { input: string }) {
     console.info({ out })
 
     return out
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+    const out = await mem_remember({
+        is_dev: true,
+        input: `user likes black mirror`,
+    })
+    console.info(JSON.stringify(out, null, 4))
 }
