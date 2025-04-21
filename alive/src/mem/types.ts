@@ -5,6 +5,7 @@ export const vec_collection_id_schema = z.enum([
     "mem",
     "diary",
     "relations",
+    "missions",
 ])
 
 export type Vec_Collection_Id = z.output<typeof vec_collection_id_schema>

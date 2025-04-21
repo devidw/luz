@@ -1,7 +1,10 @@
 import { ChatMessageData, tool } from "@lmstudio/sdk"
 import { llm } from "../lib/inference.js"
 import { z } from "zod"
-import { diary_sim_search_tool, mem_sim_search_tool } from "src/tools/_tools.js"
+import {
+    diary_recent_sim_search_tool,
+    mem_sim_search_tool,
+} from "src/tools/_tools.js"
 import { db } from "src/lib/db.js"
 import { abort_controller } from "./mission.js"
 
@@ -66,7 +69,7 @@ export async function gen_ideas({ is_dev }: { is_dev?: boolean }) {
         {
             messages: messages,
         },
-        [report_tool, mem_sim_search_tool, diary_sim_search_tool],
+        [report_tool, mem_sim_search_tool, diary_recent_sim_search_tool],
         {
             signal: abort_controller.signal,
             onMessage: (msg) => {

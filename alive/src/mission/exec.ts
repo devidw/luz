@@ -9,18 +9,21 @@ import { tool } from "@lmstudio/sdk"
 import { llm } from "../lib/inference.js"
 import { z } from "zod"
 import {
-    diary_sim_search_tool,
+    diary_recent_sim_search_tool,
     mem_sim_search_tool,
+    missions_sim_search_tool,
     web_search_tool,
     web_visit_tool,
 } from "src/tools/_tools.js"
 import { abort_controller } from "./mission.js"
 import { Mission } from "@luz/db-client"
+import { upsert_vec } from "src/mem/vec.js"
 
 const get_prompt = ({ mission }: { mission: Mission }) =>
     `
 objective: ${mission.objective}
 
+0. make sure there is no similar mission that exists already, use the mission sim search tool to do so, in case there is call the stop tool
 1. given the objective, define what the research result format should be:
     - is it a single answer to a question
     - is it a written piece
@@ -47,7 +50,28 @@ export async function mission_exec({
         return
     }
 
-    const done_tool = tool({
+    const stop_tool = tool({
+        name: "stop",
+        description: "stop bc there is an existing mission already",
+        parameters: {},
+        async implementation(params) {
+            console.info({ stop: params })
+
+            if (is_dev) {
+                return "ok"
+            }
+
+            await db.mission.delete({
+                where: {
+                    id: id,
+                },
+            })
+
+            return "ok"
+        },
+    })
+
+    const report_tool = tool({
         name: "report",
         description: "report research and mark as completed",
         parameters: {
@@ -70,6 +94,12 @@ export async function mission_exec({
                 },
             })
 
+            await upsert_vec({
+                collection_id: "missions",
+                id: id,
+                content: params.content,
+            })
+
             return "ok"
         },
     })
@@ -89,7 +119,9 @@ export async function mission_exec({
             ],
         },
         [
-            done_tool,
+            stop_tool,
+            report_tool,
+            missions_sim_search_tool,
             mem_sim_search_tool,
             // diary_sim_search_tool,
             // relations_sim_search_tool

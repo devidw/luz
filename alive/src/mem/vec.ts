@@ -9,6 +9,10 @@ export const vec_msg = await vec.getOrCreateCollection({
     name: "msg",
 })
 
+export const vec_missions = await vec.getOrCreateCollection({
+    name: "missions",
+})
+
 export const vec_mem = await vec.getOrCreateCollection({
     name: "mem",
 })
@@ -31,6 +35,8 @@ export function get_vec_collection(id: Vec_Collection_Id) {
             return vec_diary
         case "relations":
             return vec_relations
+        case "missions":
+            return vec_missions
     }
 }
 
@@ -51,25 +57,22 @@ export async function upsert_vec(mem: Mem) {
         id: mem.id,
     })
 
-    if (!fs_status) {
-        console.warn(`no status for ${mem.collection_id} ${mem.id}`)
-        return
-    }
-
     const { embedding } = await emb.embed(mem.content)
     // console.info({ emb_dims: embedding.length })
 
     await collection.upsert({
         ids: [mem.id],
         embeddings: [embedding],
-        metadatas: [
-            {
-                atime: fs_status.atime.getTime(),
-                mtime: fs_status.mtime.getTime(),
-                ctime: fs_status.ctime.getTime(),
-                birthtime: fs_status.birthtime.getTime(),
-            },
-        ],
+        metadatas: fs_status
+            ? [
+                  {
+                      atime: fs_status.atime.getTime(),
+                      mtime: fs_status.mtime.getTime(),
+                      ctime: fs_status.ctime.getTime(),
+                      birthtime: fs_status.birthtime.getTime(),
+                  },
+              ]
+            : undefined,
     })
 }
 

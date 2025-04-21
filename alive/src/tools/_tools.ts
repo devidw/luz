@@ -5,7 +5,7 @@ import { mem_upsert, mem_delete } from "../mem/api.js"
 import { web_visit } from "./web_visit.js"
 import { web_search } from "./web_search.js"
 import { format } from "date-fns"
-import { vec_collection_id_schema } from "src/mem/types.js"
+import { vec_collection_id_schema, Vec_Collection_Id } from "src/mem/types.js"
 import { mem_recall } from "src/mem/recall.js"
 
 export const mem_recall_tool = tool({
@@ -32,33 +32,6 @@ export const mem_recall_tool = tool({
         console.info(JSON.stringify(processed, null, 4))
 
         return processed
-    },
-})
-
-export const mem_sim_search_tool = tool({
-    name: "find_relevant_memories",
-    description: "find relevant memories via vector similarity search",
-    parameters: {
-        query: z.string(),
-    },
-    implementation: async (params) => {
-        console.info({ find_relevant_memories: params })
-
-        const out = await sim_search({
-            query: params.query,
-            collection_id: "mem",
-        })
-
-        const processed = out.map((one) => {
-            return {
-                id: one.item.id,
-                content: one.item.content,
-            }
-        })
-
-        console.info(JSON.stringify(processed, null, 4))
-
-        return out
     },
 })
 
@@ -146,24 +119,7 @@ export const web_visit_tool = tool({
     },
 })
 
-export const relations_sim_search_tool = tool({
-    name: "relations_sim_search",
-    description: "search relations using semantic similarity",
-    parameters: {
-        query: z.string(),
-    },
-    implementation: async (params) => {
-        console.info({ relations_sim_search: params })
-        const results = await sim_search({
-            query: params.query,
-            collection_id: "relations",
-            n: 5,
-        })
-        return results
-    },
-})
-
-export const diary_sim_search_tool = tool({
+export const diary_recent_sim_search_tool = tool({
     name: "diary_sim_search",
     description: "search recent diary entries using semantic similarity",
     parameters: {
@@ -198,3 +154,40 @@ export const diary_sim_search_tool = tool({
         return outs
     },
 })
+
+// #
+
+function make_sim_search_tool(collection_id: Vec_Collection_Id) {
+    return tool({
+        name: `${collection_id}_sim_search`,
+        description: `search for relevant ${collection_id} entries by semantic similarity`,
+        parameters: {
+            query: z.string(),
+        },
+        implementation: async (params) => {
+            console.info({ [`${collection_id}_sim_search`]: params })
+
+            const out = await sim_search({
+                query: params.query,
+                collection_id,
+            })
+
+            const processed = out.map((one) => {
+                return {
+                    id: one.item.id,
+                    content: one.item.content,
+                }
+            })
+
+            console.info(JSON.stringify(processed, null, 4))
+
+            return processed
+        },
+    })
+}
+
+export const msg_sim_search_tool = make_sim_search_tool("msg")
+export const mem_sim_search_tool = make_sim_search_tool("mem")
+export const diary_sim_search_tool = make_sim_search_tool("diary")
+export const relations_sim_search_tool = make_sim_search_tool("relations")
+export const missions_sim_search_tool = make_sim_search_tool("missions")
