@@ -46,7 +46,7 @@ async function mem_reindex_collection({
         last_index = new Date(contents)
     } catch {}
 
-    console.info({ last_index })
+    console.info({ collection_id, last_index })
 
     const entries = await fs.readdir(dir, {
         recursive: true,
@@ -72,7 +72,7 @@ async function mem_reindex_collection({
         }
     }
 
-    console.info({ reindex: ids_to_index.length })
+    console.info({ collection_id, reindex: ids_to_index.length })
 
     if (ids_to_index.length === 0) {
         return

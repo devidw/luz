@@ -8,7 +8,6 @@ export async function passive_learn_worker() {
         },
         take: 10,
         where: {
-            persona: "general",
             role: "User",
             NOT: {
                 flags: {

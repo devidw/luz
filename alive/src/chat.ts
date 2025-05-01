@@ -67,7 +67,6 @@ export async function save_being_msg(content: string) {
         created_at: new Date(),
         role: Msg_Role.Being,
         content,
-        persona: STATE.user_chat.persona,
         flags: "",
     }
 
@@ -136,7 +135,6 @@ export async function msg_handler(payload: unknown) {
             created_at: new Date(),
             role: Msg_Role.User,
             content: parsed.content,
-            persona: STATE.user_chat.persona,
             flags: "",
         }
 

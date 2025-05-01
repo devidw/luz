@@ -1,5 +1,5 @@
 import { Msg, Msg_Role } from "@luz/db-client"
-import fs from "node:fs"
+import fs from "node:fs/promises"
 import { lm } from "./lm.js"
 import { compile_prompt } from "./prompts.js"
 import { CONFIG } from "src/config.js"
@@ -58,10 +58,12 @@ export async function* infer({
         )),
     ]
 
-    fs.writeFileSync(
+    fs.writeFile(
         "../data/debug/chat.json",
         JSON.stringify(chat_messages, null, 4),
     )
+
+    fs.writeFile("../data/debug/sys_msg.md", sys_msg_content)
 
     const generator = llm.respond(
         {

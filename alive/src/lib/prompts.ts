@@ -15,26 +15,11 @@ type Prompt_Part = {
     }
 }
 
-const RAW_PROMPT = fs.readFileSync("../data/prompt.md").toString()
-
-const PERSONA_PROMPTS: Record<string, string> = {
-    general: "",
-}
-
-for (const persona of CONFIG.personas) {
-    PERSONA_PROMPTS[persona.id] = fs
-        .readFileSync(persona.prompt_path)
-        .toString()
-}
+const RAW_PROMPT = fs.readFileSync(CONFIG.chat_prompt_path).toString()
 
 const PROMPT_PARTS: Record<string, Prompt_Part> = {
     date: {
         func: async () => format(new Date(), "EEEE, d. MMMM yyyy HH:mm"),
-    },
-    persona: {
-        func: async () => {
-            return PERSONA_PROMPTS[STATE.user_chat.persona]
-        },
     },
     mems: {
         func: async () => {

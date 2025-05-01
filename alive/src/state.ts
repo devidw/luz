@@ -7,10 +7,8 @@ import { mission_control } from "./mission/mission.js"
 class State {
     _can_go_on_missions: "on" | "off" = "off"
     user_chat: {
-        persona: string
         messages: Msg[]
     } = {
-        persona: "general",
         messages: [],
     }
 
@@ -32,7 +30,6 @@ export const STATE = new State()
 export async function load_chat_history() {
     const messages = await db.msg.findMany({
         where: {
-            persona: STATE.user_chat.persona,
             created_at: {
                 gt: STORE.last_clear,
             },

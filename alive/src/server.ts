@@ -77,15 +77,6 @@ ws_server.on("connection", (socket) => {
     socket.on("msg", msg_handler)
     socket.on("regen", regen_handler)
 
-    socket.on("persona", async (payload) => {
-        if (STATE.user_chat.persona === payload) {
-            return
-        }
-
-        STATE.user_chat.persona = payload
-        await load_chat_history()
-    })
-
     socket.on("clear", () => {
         STORE.last_clear = new Date().toISOString()
         STATE.user_chat.messages = []

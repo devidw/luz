@@ -9,10 +9,10 @@
 	import autosize from "svelte-autosize"
 	import Message from "./Message.svelte"
 	import Fullscreen from "./Fullscreen.svelte"
-	import Persona from "./Persona.svelte"
 	import ErrorBox from "./ErrorBox.svelte"
 	import { STATE } from "./state.svelte.js"
 	import Photo from "./photo.svelte"
+	import Avatar from "./Avatar.svelte"
 
 	let messages = $state<(Msg & { chunks?: { content: string }[] })[]>([])
 	let thinking_message = $state("")
@@ -57,7 +57,6 @@
 						chunks: [{ content: chunk.content }],
 						id: "",
 						created_at: new Date(),
-						persona: STATE.persona,
 						flags: ""
 					}
 					messages = [...messages, current_streaming_msg]
@@ -98,7 +97,6 @@
 			chunks: [{ content: input }],
 			id: "",
 			created_at: new Date(),
-			persona: STATE.persona,
 			flags: ""
 		}
 
@@ -126,10 +124,6 @@
 
 		scroll_to_bottom()
 	}
-
-	$effect(() => {
-		socket?.emit("persona", STATE.persona)
-	})
 
 	function clear_chat() {
 		messages = []
@@ -188,7 +182,6 @@
 					chunks: [{ content: thinking_message }],
 					id: "",
 					created_at: new Date(),
-					persona: STATE.persona,
 					flags: ""
 				}}
 				root={undefined}
@@ -198,18 +191,20 @@
 	</div>
 
 	<div class="max-w-xl w-full mx-auto">
-		<div class="flex justify-between">
-			<Persona />
-
+		<div class="flex justify-between items-end">
 			<!-- <Photo /> -->
 
-			<div class="flex gap-3">
+			<div class="flex gap-3 w-25%">
 				{#if is_typing}
 					<button on:click={abort_msg_gen}>abort</button>
 				{/if}
 				<button on:click={regen}>regen</button>
 				<button on:click={clear_chat}>clear</button>
 			</div>
+
+			<Avatar />
+
+			<div class="w-25%"></div>
 		</div>
 
 		<div class="flex">

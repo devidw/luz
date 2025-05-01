@@ -4,16 +4,9 @@ import fs from "node:fs"
 const config_schema = z.object({
     chat_model_key: z.string(),
     embedding_model_key: z.string(),
+    chat_prompt_path: z.string(),
     mem_dirs: z.record(z.string(), z.string()),
     ip_whitelist: z.array(z.string()).default([]),
-    personas: z
-        .array(
-            z.object({
-                id: z.string(),
-                prompt_path: z.string(),
-            }),
-        )
-        .default([]),
     integrations: z
         .object({
             apple_calendar: z.object({}),

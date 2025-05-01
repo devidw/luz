@@ -18,12 +18,10 @@ model Msg {
   created_at DateTime @default(now())
   content    String
   role       Msg_Role
-  persona    String   @default("general")
   flags      String   @default("")
 
   @@index([created_at])
   @@index([role])
-  @@index([persona])
   @@index([flags])
 }
 

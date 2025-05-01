@@ -11,10 +11,6 @@ import { mem_recall } from "./mem/recall.js"
 const trpc = initTRPC.create()
 
 export const app_router = trpc.router({
-    personas: trpc.procedure.query(() => {
-        return ["general", ...CONFIG.personas.map((a) => a.id)]
-    }),
-
     chat_history: trpc.procedure.query(() => {
         return STATE.user_chat.messages
     }),
