@@ -55,8 +55,17 @@ async function gen_msg_content(messages: Msg[]) {
             role: Msg_Role.Being,
             content: chunk.content,
             thinking: is_thinking,
+            is_end: false,
         })
     }
+
+    // Send final chunk with is_end flag
+    ws_server.emit("msg_chunk", {
+        role: Msg_Role.Being,
+        content: "",
+        thinking: false,
+        is_end: true,
+    })
 
     return full_content
 }

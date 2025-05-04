@@ -23,6 +23,36 @@
 	let messages_container = $state<HTMLDivElement | null>(null)
 	let last_user_message = $state<HTMLDivElement | null>(null)
 	let error = $state<string | null>(null)
+	let is_generating_tts = $state(false)
+	let auto_tts = $state(false)
+
+	async function play_tts(text: string) {
+		if (is_generating_tts) return
+
+		is_generating_tts = true
+		try {
+			const response = await fetch("http://127.0.0.1:8000/tts", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json"
+				},
+				body: JSON.stringify({
+					text,
+					speed: 0.8
+				})
+			})
+
+			if (!response.ok) throw new Error("TTS request failed")
+
+			const blob = await response.blob()
+			const audio = new Audio(URL.createObjectURL(blob))
+			await audio.play()
+		} catch (error) {
+			console.error("TTS error:", error)
+		} finally {
+			is_generating_tts = false
+		}
+	}
 
 	function scroll_to_bottom() {
 		if (messages_container) {
@@ -45,31 +75,39 @@
 			scroll_to_bottom()
 		})
 
-		socket.on("msg_chunk", (chunk: Pick<Msg, "role" | "content"> & { thinking: boolean }) => {
-			if (chunk.thinking) {
-				thinking_message += chunk.content
-				is_typing = true
-			} else {
-				if (!current_streaming_msg) {
-					current_streaming_msg = {
-						role: chunk.role,
-						content: chunk.content,
-						chunks: [{ content: chunk.content }],
-						id: "",
-						created_at: new Date(),
-						flags: ""
-					}
-					messages = [...messages, current_streaming_msg]
+		socket.on(
+			"msg_chunk",
+			(chunk: Pick<Msg, "role" | "content"> & { thinking?: boolean; is_end?: boolean }) => {
+				if (chunk.thinking) {
+					thinking_message += chunk.content
+					is_typing = true
 				} else {
-					current_streaming_msg.content += chunk.content
-					current_streaming_msg.chunks = [
-						...current_streaming_msg.chunks,
-						{ content: chunk.content }
-					]
-					messages = messages
+					if (!current_streaming_msg) {
+						current_streaming_msg = {
+							role: chunk.role,
+							content: chunk.content,
+							chunks: [{ content: chunk.content }],
+							id: "",
+							created_at: new Date(),
+							flags: ""
+						}
+						messages = [...messages, current_streaming_msg]
+					} else {
+						current_streaming_msg.content += chunk.content
+						current_streaming_msg.chunks = [
+							...current_streaming_msg.chunks,
+							{ content: chunk.content }
+						]
+						messages = messages
+					}
+
+					// If this is the end chunk and auto-TTS is enabled, trigger TTS
+					if (chunk.is_end && current_streaming_msg?.role === "Being" && auto_tts) {
+						play_tts(current_streaming_msg.content)
+					}
 				}
 			}
-		})
+		)
 
 		socket?.on("typing_status", async (status) => {
 			is_typing = status === "typing"
@@ -188,23 +226,39 @@
 				is_thinking={true}
 			/>
 		{/if}
+
+		<div class="sticky bottom-0 flex justify-center">
+			<Avatar />
+		</div>
 	</div>
 
 	<div class="max-w-xl w-full mx-auto">
 		<div class="flex justify-between items-end">
-			<!-- <Photo /> -->
+			<div class="flex items-center gap-2">
+				<label class="flex items-center gap-1 text-xs text-stone-500">
+					<input type="checkbox" bind:checked={auto_tts} />
+					auto-speak
+				</label>
+				{#if messages.length > 0 && messages[messages.length - 1].role === "Being"}
+					<button
+						on:click={() => play_tts(messages[messages.length - 1].content)}
+						class="text-xs text-stone-500 hover:text-stone-300 disabled:opacity-50 disabled:cursor-not-allowed {is_generating_tts
+							? 'animate-pulse'
+							: ''}"
+						disabled={is_generating_tts}
+					>
+						speak
+					</button>
+				{/if}
+			</div>
 
-			<div class="flex gap-3 w-25%">
+			<div class="flex gap-3">
 				{#if is_typing}
 					<button on:click={abort_msg_gen}>abort</button>
 				{/if}
 				<button on:click={regen}>regen</button>
 				<button on:click={clear_chat}>clear</button>
 			</div>
-
-			<Avatar />
-
-			<div class="w-25%"></div>
 		</div>
 
 		<div class="flex">

@@ -18,6 +18,8 @@
 	camera-controls
 	shadow-intensity="1"
 	interaction-prompt="none"
+	disable-zoom
+	class="h-200px"
 ></model-viewer>
 
 <style>

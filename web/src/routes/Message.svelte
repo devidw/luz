@@ -13,9 +13,10 @@
 
 <div bind:this={root} class="w-full flex flex-col">
 	<div
-		class="leading-175% px3 py2 rounded-lg whitespace-pre-wrap {msg.role === 'User'
-			? 'ml-auto max-w-70% bg-[#2a1f2d] italic'
-			: ''} {is_thinking ? 'text-stone-500' : ''}"
+		class="z-1 leading-175% px3 py2 rounded-lg whitespace-pre-wrap backdrop-blur-sm {msg.role ===
+		'User'
+			? 'ml-auto max-w-70% bg-[#2a1f2d]/80 italic'
+			: 'bg-black/50'} {is_thinking ? 'text-stone-500' : ''}"
 	>
 		{#if msg.chunks?.length > 0}
 			{#each msg.chunks as chunk}
@@ -25,12 +26,11 @@
 			{msg.content}
 		{/if}
 	</div>
-	<button
-		on:click={delete_message}
-		class="text-xs text-stone-500 hover:text-stone-300 self-end mt-1"
-	>
-		delete
-	</button>
+	<div class="flex gap-2 self-end mt-1">
+		<button on:click={delete_message} class="text-xs text-stone-500 hover:text-stone-300">
+			delete
+		</button>
+	</div>
 </div>
 
 <style>

@@ -2,7 +2,9 @@
 /data
 /db-client/gen
 /alive/scripts
-/web/static/avatar.glb
+/web/static/*.glb
+/tts/csm
+/tts/MeloTTS
 
 # Created by https://www.toptal.com/developers/gitignore/api/node,macos,python
 # Edit at https://www.toptal.com/developers/gitignore?templates=node,macos,python
